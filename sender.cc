@@ -180,7 +180,7 @@ int main( int argc, char *argv[] ) {
 	serverip = ip;
 
         while(true){
-                int recvLen = recv(server_fd, recv_buf, 20, 0);
+                int recvLen = recv(client_fd, recv_buf, 20, 0);
                 if(recvLen > 0){
 			printf("Recv something\n");
                         if(recv_buf[0] == (char)0xAA && recv_buf[0] == (char)0xAA &&
@@ -190,7 +190,8 @@ int main( int argc, char *argv[] ) {
                         }
                 }
         }
-        send(server_fd, send_buf, 20, 0);
+
+        send(client_fd, send_buf, 20, 0);
         close(server_fd);
         close(client_fd);
 	

@@ -192,9 +192,8 @@ int main( int argc, char *argv[] ) {
         }
 
         send(client_fd, send_buf, 20, 0);
-        close(server_fd);
-        close(client_fd);
-	
+
+
 	if ( serverip == "" ) {
 		fprintf( stderr, "Usage: sender serverip=(ipaddr) [if=(ratname)] [offduration=(time in ms)] [onduration=(time in ms)] [cctype=remy|kernel|tcp|markovian] [delta_conf=(for MarkovianCC)] [traffic_params=[exponential|deterministic],[byte_switched],[num_cycles=]] [linkrate=(packets/sec)] [linklog=filename] [serverport=(port)]\n");
 		exit(1);
@@ -249,4 +248,6 @@ int main( int argc, char *argv[] ) {
 	else{
 		assert( false );
 	}
+        close(server_fd);
+        close(client_fd);
 }

@@ -222,7 +222,6 @@ int main(int argc, char* argv[]) {
 			}
 		}
 	}
-	close(server_fd);
 
 	UDPSocket sender_socket;
 	sender_socket.bindsocket(port);
@@ -230,5 +229,6 @@ int main(int argc, char* argv[]) {
 	//thread nat_thread(punch_NAT, nat_ip_addr, ref(sender_socket));
 	echo_packets(sender_socket);
 
+	close(server_fd);
 	return 0;
 }

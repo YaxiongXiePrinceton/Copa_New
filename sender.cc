@@ -83,7 +83,7 @@ int main( int argc, char *argv[] ) {
 	bool ratFound = false;
 
 	string serverip = "";
-	int serverport=8888;
+	int serverport=9004;
   	int sourceport=0;
 	int offduration=5000, onduration=5000;
 	string traffic_params = "";
@@ -177,8 +177,8 @@ int main( int argc, char *argv[] ) {
         send_buf[3] = (char)0xAA;
 	char ip[32];
         accept_slave_connect(&server_fd, &client_fd, portNum, ip);
-	serverip = ip;
 
+	serverip = ip;
         while(true){
                 int recvLen = recv(client_fd, recv_buf, 20, 0);
                 if(recvLen > 0){
@@ -192,6 +192,7 @@ int main( int argc, char *argv[] ) {
         }
 
         send(client_fd, send_buf, 20, 0);
+	std::cout << "server ip" << serverip << "\n";
 
 
 	if ( serverip == "" ) {

@@ -71,6 +71,8 @@ void echo_packets(UDPSocket &sender_socket) {
 	char buff[BUFFSIZE];
 	sockaddr_in sender_addr;
 
+	printf("echo packets!\n");
+
 	chrono::high_resolution_clock::time_point start_time_point = \
 		chrono::high_resolution_clock::now();
 
@@ -165,7 +167,7 @@ int connectServer(){
    // }else{
    //     remote_addr.sin_addr.s_addr=inet_addr( masterIP );//服务器IP地址
    // }
-    remote_addr.sin_addr.s_addr=inet_addr("127.0.0.1");//服务器IP地址
+    remote_addr.sin_addr.s_addr=inet_addr("3.22.79.149");//服务器IP地址
     remote_addr.sin_port=htons(6767); //服务器端口号
 
     printf("\n\n\n\n\n");
@@ -214,6 +216,7 @@ int main(int argc, char* argv[]) {
 		if(recvLen > 0){
 			if(recv_buf[0] == (char)0xAA && recv_buf[0] == (char)0xAA &&
 				recv_buf[0] == (char)0xAA && recv_buf[0] == (char)0xAA){
+				printf("ACK from server!\n");
 				break;
 			}
 		}

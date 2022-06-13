@@ -184,6 +184,7 @@ int main( int argc, char *argv[] ) {
                 if(recvLen > 0){
                         if(recv_buf[0] == (char)0xAA && recv_buf[0] == (char)0xAA &&
                                 recv_buf[0] == (char)0xAA && recv_buf[0] == (char)0xAA){
+				printf("Recv from Client!\n");
                                 break;
                         }
                 }

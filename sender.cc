@@ -182,6 +182,7 @@ int main( int argc, char *argv[] ) {
         while(true){
                 int recvLen = recv(server_fd, recv_buf, 20, 0);
                 if(recvLen > 0){
+			printf("Recv something\n");
                         if(recv_buf[0] == (char)0xAA && recv_buf[0] == (char)0xAA &&
                                 recv_buf[0] == (char)0xAA && recv_buf[0] == (char)0xAA){
 				printf("Recv from Client!\n");

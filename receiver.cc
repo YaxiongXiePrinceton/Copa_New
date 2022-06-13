@@ -214,8 +214,9 @@ int main(int argc, char* argv[]) {
 	while(true){
 		int recvLen = recv(server_fd, recv_buf, 20, 0);
 		if(recvLen > 0){
-			if(recv_buf[0] == (char)0xAA && recv_buf[0] == (char)0xAA &&
-				recv_buf[0] == (char)0xAA && recv_buf[0] == (char)0xAA){
+			printf("recv something!\n");
+			if(recv_buf[0] == (char)0xAA && recv_buf[1] == (char)0xAA &&
+				recv_buf[2] == (char)0xAA && recv_buf[3] == (char)0xAA){
 				printf("ACK from server!\n");
 				break;
 			}

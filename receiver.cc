@@ -82,10 +82,18 @@ void echo_packets(UDPSocket &sender_socket) {
 			chrono::high_resolution_clock::now() - start_time_point
 		).count()*1000; //in milliseconds
 
-	sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
-	sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
-	sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
-	sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
+	
+	// hardcode the AWS server address	
+	sockaddr_in dest_addr;
+	dest_addr.sin_port = htons(9004);
+    	if (inet_aton("3.22.79.149", &dest_addr.sin_addr) == 0)
+    	{
+		std::cerr<<"inet_aton failed while sending data. Code: "<<errno<<endl;
+    	}
+	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
+	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
+	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
+	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
 
 	while (1) {
 		int received __attribute((unused)) = -1;
@@ -212,28 +220,7 @@ int main(int argc, char* argv[]) {
 	int port = 9004;
 	if (argc == 2)
 		port = atoi(argv[1]);
-	char send_buf[20];
-	char recv_buf[20];
 
-	send_buf[0] = (char)0xAA;
-	send_buf[1] = (char)0xAA;
-	send_buf[2] = (char)0xAA;
-	send_buf[3] = (char)0xAA;
-	
-	int server_fd = connectServer();
-	send(server_fd, send_buf, 20, 0);	
-	send(server_fd, send_buf, 20, 0);	
-	while(true){
-		int recvLen = recv(server_fd, recv_buf, 20, 0);
-		if(recvLen > 0){
-			printf("recv something!\n");
-			if(recv_buf[0] == (char)0xAA && recv_buf[1] == (char)0xAA &&
-				recv_buf[2] == (char)0xAA && recv_buf[3] == (char)0xAA){
-				printf("ACK from server!\n");
-				break;
-			}
-		}
-	}
 
 	UDPSocket sender_socket;
 	sender_socket.bindsocket(port);
@@ -241,6 +228,5 @@ int main(int argc, char* argv[]) {
 	//thread nat_thread(punch_NAT, nat_ip_addr, ref(sender_socket));
 	echo_packets(sender_socket);
 
-	close(server_fd);
 	return 0;
 }

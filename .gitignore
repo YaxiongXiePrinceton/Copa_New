@@ -29,6 +29,8 @@
 
 # Vim tmp files
 *.swp
+*.swo
+
 # Project specific edits
 
 # Specific Folders

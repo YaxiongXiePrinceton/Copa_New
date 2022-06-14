@@ -125,6 +125,24 @@ void CTCP<T>::tcp_handshake() {
   start_time_point = chrono::high_resolution_clock::now();
   double last_send_time = -1e9;
   bool multi_send = false;
+ 
+  if(socket.get_ip() == "0.0"){
+	cout<< "Remote unknown! Punching the NAT first!\n" << endl; 
+  	while ( true ) {
+		int ret = socket.receivedata( buf, packet_size, 200, other_addr );
+    		if (ret == 0) {
+			cerr << "Could not establish connection" << endl;
+      			continue;
+		}else if(ret > 0){
+			string ip;
+			int port;
+			UDPSocket::decipher_socket_addr(other_addr, ip, port);
+			cout << "Get data from "<< ip << " port: " << port << endl;
+			socket.set_remote_ip(ip, port);
+			break;
+		}
+	}
+  } 
   while ( true ) {
     double cur_time = current_timestamp(start_time_point);
     if (last_send_time < cur_time - 200) {

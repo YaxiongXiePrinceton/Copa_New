@@ -76,6 +76,17 @@ void echo_packets(UDPSocket &sender_socket) {
 	chrono::high_resolution_clock::time_point start_time_point = \
 		chrono::high_resolution_clock::now();
 
+	TCPHeader *header = (TCPHeader*)buff;
+	header->receiver_timestamp = \
+		chrono::duration_cast<chrono::duration<double>>(
+			chrono::high_resolution_clock::now() - start_time_point
+		).count()*1000; //in milliseconds
+
+	sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
+	sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
+	sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
+	sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
+
 	while (1) {
 		int received __attribute((unused)) = -1;
 		while (received == -1) {
@@ -167,8 +178,8 @@ int connectServer(){
    // }else{
    //     remote_addr.sin_addr.s_addr=inet_addr( masterIP );//服务器IP地址
    // }
-    //remote_addr.sin_addr.s_addr=inet_addr("3.22.79.149");//服务器IP地址
-    remote_addr.sin_addr.s_addr=inet_addr("192.168.1.40");//服务器IP地址
+    remote_addr.sin_addr.s_addr=inet_addr("3.22.79.149");//服务器IP地址
+    //remote_addr.sin_addr.s_addr=inet_addr("192.168.1.40");//服务器IP地址
     remote_addr.sin_port=htons(6767); //服务器端口号
 
     printf("\n\n\n\n\n");

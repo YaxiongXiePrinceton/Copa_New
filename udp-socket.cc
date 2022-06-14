@@ -7,7 +7,10 @@
 #include "udp-socket.hh"
 
 using namespace std;
-
+void UDPSocket::set_remote_ip(std::string remote_ip, int remote_port){
+	ipaddr 	= remote_ip;
+	port 	= remote_port;
+}
 int UDPSocket::bindsocket(string s_ipaddr, int s_port, int sourceport){
 	ipaddr = s_ipaddr;
 	port = s_port;
@@ -27,7 +30,7 @@ int UDPSocket::bindsocket(string s_ipaddr, int s_port, int sourceport){
 	} else {
 		bound = true;
 		return 0;
-  }
+  	}
 }
 
 int UDPSocket::bindsocket(int s_port)
@@ -155,3 +158,7 @@ string UDPSocket::decipher_socket_addr(sockaddr_in addr) {
 	UDPSocket::decipher_socket_addr(addr, ip_addr, port);
 	return ip_addr + ":" + to_string(port);
  }
+
+string UDPSocket::get_ip(){
+	return ipaddr;
+}

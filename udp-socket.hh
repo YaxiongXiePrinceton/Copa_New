@@ -31,6 +31,8 @@ public:
 
 	static void decipher_socket_addr(SockAddress addr, std::string& ip_addr, int& port);
 	static std::string decipher_socket_addr(SockAddress addr);
+	void set_remote_ip(std::string remote_ip, int remote_port);
+	std::string get_ip();
 };
 
 #endif

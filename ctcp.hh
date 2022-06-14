@@ -131,7 +131,7 @@ void CTCP<T>::tcp_handshake() {
   	while ( true ) {
 		int ret = socket.receivedata( buf, packet_size, 200, other_addr );
     		if (ret == 0) {
-			cerr << "Could not establish connection" << endl;
+			cerr << "Waiting sender but could not see anything!" << endl;
       			continue;
 		}else if(ret > 0){
 			string ip;

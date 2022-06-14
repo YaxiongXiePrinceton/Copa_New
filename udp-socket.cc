@@ -11,12 +11,12 @@ using namespace std;
 int UDPSocket::bindsocket(string s_ipaddr, int s_port, int sourceport){
 	ipaddr = s_ipaddr;
 	port = s_port;
-  srcport = sourceport;
-  if (sourceport == 0) {
-    bound = true;
-    return 0;
-  }
-  struct sockaddr_in srcaddr;
+	srcport = sourceport;
+	if (sourceport == 0) {
+		bound = true;
+		return 0;
+	}
+	struct sockaddr_in srcaddr;
 	memset(&srcaddr, 0, sizeof(srcaddr));
 	srcaddr.sin_family = AF_INET;
 	srcaddr.sin_addr.s_addr = htonl(INADDR_ANY);
@@ -37,9 +37,9 @@ int UDPSocket::bindsocket(int s_port)
  	sockaddr_in addr_struct;
 	memset((char *) &addr_struct, 0, sizeof(addr_struct));
 
-    addr_struct.sin_family = AF_INET;
-    addr_struct.sin_port = htons(port);
-    addr_struct.sin_addr.s_addr = htonl(INADDR_ANY);
+    	addr_struct.sin_family = AF_INET;
+    	addr_struct.sin_port = htons(port);
+    	addr_struct.sin_addr.s_addr = htonl(INADDR_ANY);
  	if (bind(udp_socket , (struct sockaddr*)&addr_struct, sizeof(addr_struct) ) != 0){
  		std::cerr<<"Error while binding socket. Code: "<<errno<<endl;
  		return -1;

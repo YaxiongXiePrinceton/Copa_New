@@ -84,7 +84,7 @@ int main( int argc, char *argv[] ) {
 
 	string serverip = "";
 	int serverport=9004;
-  	int sourceport=0;
+  	int sourceport=9004;
 	int offduration=5000, onduration=5000;
 	string traffic_params = "";
 	// for MarkovianCC

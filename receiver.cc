@@ -167,7 +167,8 @@ int connectServer(){
    // }else{
    //     remote_addr.sin_addr.s_addr=inet_addr( masterIP );//服务器IP地址
    // }
-    remote_addr.sin_addr.s_addr=inet_addr("3.22.79.149");//服务器IP地址
+    //remote_addr.sin_addr.s_addr=inet_addr("3.22.79.149");//服务器IP地址
+    remote_addr.sin_addr.s_addr=inet_addr("192.168.1.40");//服务器IP地址
     remote_addr.sin_port=htons(6767); //服务器端口号
 
     printf("\n\n\n\n\n");
@@ -197,7 +198,7 @@ int connectServer(){
 }
 
 int main(int argc, char* argv[]) {
-	int port = 8888;
+	int port = 9004;
 	if (argc == 2)
 		port = atoi(argv[1]);
 	char send_buf[20];

@@ -17,7 +17,7 @@ double TRAINING_LINK_RATE = 4000000.0/1500.0;
 bool LINK_LOGGING = false;
 std::string LINK_LOGGING_FILENAME;
 
-int accept_slave_connect(int* server_fd, int* client_fd_vec, int portNum, char* ip){
+int accept_slave_connect(int* server_fd, int* client_fd_vec, int portNum, char* ip, int* port){
     int server_sockfd;//服务器端套接字
     int client_sockfd;//客户端套接字
     int nof_sock = 0;
@@ -69,6 +69,7 @@ int accept_slave_connect(int* server_fd, int* client_fd_vec, int portNum, char* 
     if(client_sockfd > 0){
         printf("accept client %s\n",inet_ntoa(remote_addr.sin_addr));
 	strcpy(ip, inet_ntoa(remote_addr.sin_addr));
+	*port = ntohs(remote_addr.sin_port);
         client_fd_vec[nof_sock] = client_sockfd;
         nof_sock += 1;
     }else{
@@ -176,9 +177,12 @@ int main( int argc, char *argv[] ) {
         send_buf[2] = (char)0xAA;
         send_buf[3] = (char)0xAA;
 	char ip[32];
-        accept_slave_connect(&server_fd, &client_fd, portNum, ip);
+	int port = 0;
+        accept_slave_connect(&server_fd, &client_fd, portNum, ip, &port);
 
-	serverip = ip;
+	serverip    = ip;
+	sourceport  = port;
+
         while(true){
                 int recvLen = recv(client_fd, recv_buf, 20, 0);
                 if(recvLen > 0){
@@ -192,8 +196,9 @@ int main( int argc, char *argv[] ) {
         }
 
         send(client_fd, send_buf, 20, 0);
-	std::cout << "server ip" << serverip << "\n";
+	std::cout << "server ip: " << serverip << "port:" << port << "\n";
 
+	sleep(4);
 
 	if ( serverip == "" ) {
 		fprintf( stderr, "Usage: sender serverip=(ipaddr) [if=(ratname)] [offduration=(time in ms)] [onduration=(time in ms)] [cctype=remy|kernel|tcp|markovian] [delta_conf=(for MarkovianCC)] [traffic_params=[exponential|deterministic],[byte_switched],[num_cycles=]] [linkrate=(packets/sec)] [linklog=filename] [serverport=(port)]\n");

@@ -65,15 +65,18 @@ int accept_slave_connect(int* server_fd, int* client_fd_vec, int portNum, char* 
 
     sin_size=sizeof(struct sockaddr_in);
     printf("Waiting for client!\n");
+    while(true){
     client_sockfd=accept(server_sockfd,(struct sockaddr *)&remote_addr, &sin_size);
     if(client_sockfd > 0){
-        printf("accept client %s\n",inet_ntoa(remote_addr.sin_addr));
 	strcpy(ip, inet_ntoa(remote_addr.sin_addr));
 	*port = ntohs(remote_addr.sin_port);
         client_fd_vec[nof_sock] = client_sockfd;
         nof_sock += 1;
+        printf("accept client ip:%s port:%d \n",inet_ntoa(remote_addr.sin_addr), ntohs(remote_addr.sin_port));
     }else{
         printf("Cannot find any clients!\n");
+    }
+    if(nof_sock >= 1) break;
     }
     return nof_sock;
 }
@@ -83,9 +86,9 @@ int main( int argc, char *argv[] ) {
 	WhiskerTree whiskers;
 	bool ratFound = false;
 
-	string serverip = "";
+	string serverip = "0.0";
 	int serverport=9004;
-  	int sourceport=9004;
+  	int sourceport=0;
 	int offduration=5000, onduration=5000;
 	string traffic_params = "";
 	// for MarkovianCC
@@ -168,38 +171,6 @@ int main( int argc, char *argv[] ) {
 		}
 	}
 	
-		
-        char send_buf[20];
-        char recv_buf[20];
-        int server_fd = 0, client_fd = 0, portNum = 6767;
-        send_buf[0] = (char)0xAA;
-        send_buf[1] = (char)0xAA;
-        send_buf[2] = (char)0xAA;
-        send_buf[3] = (char)0xAA;
-	char ip[32];
-	int port = 0;
-        accept_slave_connect(&server_fd, &client_fd, portNum, ip, &port);
-
-	serverip    = ip;
-	sourceport  = port;
-
-        while(true){
-                int recvLen = recv(client_fd, recv_buf, 20, 0);
-                if(recvLen > 0){
-			printf("Recv something\n");
-                        if(recv_buf[0] == (char)0xAA && recv_buf[0] == (char)0xAA &&
-                                recv_buf[0] == (char)0xAA && recv_buf[0] == (char)0xAA){
-				printf("Recv from Client!\n");
-                                break;
-                        }
-                }
-        }
-
-        send(client_fd, send_buf, 20, 0);
-	std::cout << "server ip: " << serverip << "port:" << port << "\n";
-
-	sleep(4);
-
 	if ( serverip == "" ) {
 		fprintf( stderr, "Usage: sender serverip=(ipaddr) [if=(ratname)] [offduration=(time in ms)] [onduration=(time in ms)] [cctype=remy|kernel|tcp|markovian] [delta_conf=(for MarkovianCC)] [traffic_params=[exponential|deterministic],[byte_switched],[num_cycles=]] [linkrate=(packets/sec)] [linklog=filename] [serverport=(port)]\n");
 		exit(1);
@@ -254,6 +225,4 @@ int main( int argc, char *argv[] ) {
 	else{
 		assert( false );
 	}
-        close(server_fd);
-        close(client_fd);
 }

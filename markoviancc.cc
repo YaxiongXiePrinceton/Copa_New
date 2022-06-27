@@ -210,13 +210,18 @@ void MarkovianCC::onACK(int ack,
   int seq_num = ack - 1;
   double cur_time = current_timestamp();
   assert(cur_time > sent_time);
+ 
+  double curr_rtt = cur_time - sent_time - ((double)adjust_us / 1000);
+
+  /* NG-Scope rtt update */
+  //rtt_window.new_rtt_sample(cur_time - sent_time, cur_time);
+  rtt_window.new_rtt_sample(curr_rtt, cur_time);
 
 
-  rtt_window.new_rtt_sample(cur_time - sent_time, cur_time);
   min_rtt = rtt_window.get_min_rtt(); //min(min_rtt, cur_time - sent_time);
   assert(rtt_window.get_unjittered_rtt() >= min_rtt);
 
-  std::cout << "adjust us:" << adjust_us << "RTT:" << cur_time-sent_time<< endl;
+  std::cout << "adjust us:" << adjust_us << "RTT:" << cur_time-sent_time << "adjusted rtt:" << curr_rtt << endl;
   // loss_rate = loss_rate * (1.0 - alpha_loss);
 
   if (prev_ack_time != 0) {
@@ -225,7 +230,9 @@ void MarkovianCC::onACK(int ack,
   }
   prev_ack_time = cur_time;
 
-  update_delta(false, cur_time - sent_time);
+  /* NG-Scope rtt update */
+  //update_delta(false, cur_time - sent_time);
+  update_delta(false, curr_rtt);
   update_intersend_time();
 
   bool pkt_lost = false;

@@ -311,8 +311,8 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
       congctrl.set_timestamp(cur_time);
       congctrl.onACK(ack_header.seq_num / train_length,
                      ack_header.receiver_timestamp,
-		     ack_header.adjust_us,
-                     ack_header.sender_timestamp);
+		     ack_header.sender_timestamp,
+		     ack_header.adjust_us );
     }
 #ifdef SCALE_SEND_RECEIVE_EWMA
     //assert(false);

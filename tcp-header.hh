@@ -4,4 +4,5 @@ struct TCPHeader{
 	int src_id;
 	double sender_timestamp;
 	double receiver_timestamp;
+	int adjust_us;
 };

@@ -240,6 +240,7 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
       header.src_id = src_id;
       header.sender_timestamp = cur_time;
       header.receiver_timestamp = 0;
+      header.adjust_us = 0;
       memcpy( buf, &header, sizeof(TCPHeader) );
       socket.senddata( buf, packet_size, NULL );
       _last_send_time += congctrl.get_intersend_time();
@@ -272,6 +273,7 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
 
     memcpy(&ack_header, buf, sizeof(TCPHeader));
     ack_header.seq_num++; // because the receiver doesn't do that for us yet
+    std::cout << "adjust us:" <<ack_header.adjust_us << endl;
 
     if (ack_header.src_id != src_id || ack_header.flow_id != flow_id){
       if(ack_header.src_id != src_id ){

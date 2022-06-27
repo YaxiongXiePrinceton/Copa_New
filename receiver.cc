@@ -110,7 +110,7 @@ void echo_packets(UDPSocket &sender_socket) {
 			chrono::duration_cast<chrono::duration<double>>(
 				chrono::high_resolution_clock::now() - start_time_point
 			).count()*1000; //in milliseconds
-
+		header->adjust_us = 222;
 		//socket_lock.lock();
 			sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
 		//socket_lock.unlock();

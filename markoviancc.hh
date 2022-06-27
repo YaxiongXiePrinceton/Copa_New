@@ -168,8 +168,12 @@ public:
   
   // callback functions for packet events
   virtual void init() override;
+
+  //virtual void onACK(int ack, double receiver_timestamp, 
+		     //double sent_time, int delta_class=-1);
   virtual void onACK(int ack, double receiver_timestamp, 
-		     double sent_time, int delta_class=-1);
+		     double sent_time, int adjust_us, int delta_class=-1);
+ 
   virtual void onTimeout() override;
   virtual void onDupACK() override;
   virtual void onPktSent(int seq_num) override;

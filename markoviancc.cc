@@ -206,15 +206,17 @@ void MarkovianCC::update_intersend_time() {
 
 void MarkovianCC::onACK(int ack, 
 			double receiver_timestamp __attribute((unused)),
-			double sent_time, int delta_class __attribute((unused))) {
+			double sent_time, int adjust_us, int delta_class __attribute((unused))) {
   int seq_num = ack - 1;
   double cur_time = current_timestamp();
   assert(cur_time > sent_time);
+
 
   rtt_window.new_rtt_sample(cur_time - sent_time, cur_time);
   min_rtt = rtt_window.get_min_rtt(); //min(min_rtt, cur_time - sent_time);
   assert(rtt_window.get_unjittered_rtt() >= min_rtt);
 
+  std::cout << "adjust us:" << adjust_us << "RTT:" << cur_time-sent_time<< endl;
   // loss_rate = loss_rate * (1.0 - alpha_loss);
 
   if (prev_ack_time != 0) {

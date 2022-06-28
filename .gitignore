@@ -31,6 +31,9 @@
 *.swp
 *.swo
 
+# data folder
+./data
+
 # Project specific edits
 
 # Specific Folders

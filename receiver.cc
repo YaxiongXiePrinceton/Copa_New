@@ -106,6 +106,13 @@ void echo_packets(UDPSocket &sender_socket) {
 
 		header->adjust_us = 222;
 
+		uint64_t tx_timestamp = header->tx_timestamp;
+	     	uint32_t lower_t  = tx_timestamp & 0xFFFFFFFF;
+      		lower_t = ntohl(lower_t);
+      		uint32_t upper_t  = (tx_timestamp >> 32) & 0xFFFFFFFF;
+      		upper_t = ntohl(upper_t);
+		uint64_t tx_time_ns = (uint64_t)lower_t + ((uint64_t)upper_t << 32);
+
 		pkt_header_t pkt_header;
 		node                        = createNode();
 		pkt_header.sequence_number  = header->seq_num;
@@ -119,7 +126,7 @@ void echo_packets(UDPSocket &sender_socket) {
 
 		uint64_t oneway_ns = header->tx_timestamp - recv_time_ns;
 		std::cout << "seq:" << header->seq_num << " tx timestamp: " << header->tx_timestamp 
-						<< "rx timestamp:" << recv_time_ns << endl;
+			<< " tx timestamp ns: " << tx_time_ns  << "rx timestamp:" << recv_time_ns << endl;
 
 		node->recv_t_us         = recv_time_ns / 1000; // ns -> us
 		node->pkt_header        = pkt_header;

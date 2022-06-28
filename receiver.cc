@@ -124,7 +124,7 @@ void echo_packets(UDPSocket &sender_socket) {
 
 		memcpy(&node->pkt_header, header, sizeof(TCPHeader));
 
-		uint64_t oneway_ns = header->tx_timestamp - recv_time_ns;
+		uint64_t oneway_ns = tx_time_ns - recv_time_ns;
 		std::cout << "seq:" << header->seq_num << " tx timestamp: " << header->tx_timestamp 
 			<< " tx timestamp ns: " << tx_time_ns  << "rx timestamp:" << recv_time_ns << endl;
 

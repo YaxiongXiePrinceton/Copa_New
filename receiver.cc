@@ -110,15 +110,17 @@ void echo_packets(UDPSocket &sender_socket) {
 		node                        = createNode();
 		pkt_header.sequence_number  = header->seq_num;
 		pkt_header.ack_number       = 0;
-		pkt_header.sent_timestamp   = header->sender_timestamp;
+		pkt_header.sent_timestamp   = header->tx_timestamp;
 		pkt_header.sender_id        = header->src_id;
 		pkt_header.recv_len         = received;
 		node->pkt_header 	    = pkt_header;	
 
 		memcpy(&node->pkt_header, header, sizeof(TCPHeader));
 
-		uint64_t oneway_ns = 0;
-		//printf("recv:%d\n", recv_len);
+		uint64_t oneway_ns = header->tx_timestamp - recv_time_ns;
+		std::cout << "seq:" << header->seq_num << " tx timestamp: " << header->tx_timestamp 
+						<< "rx timestamp:" << recv_time_ns << endl;
+
 		node->recv_t_us         = recv_time_ns / 1000; // ns -> us
 		node->pkt_header        = pkt_header;
 		node->oneway_us         = oneway_ns / 1000;  // ns -> us
@@ -127,7 +129,8 @@ void echo_packets(UDPSocket &sender_socket) {
 		insertNode_checkTime(pkt_list, node, fd_delay);
 
             	int  listLen = listLength(pkt_list);
-		std::cout<< "rx t:" << header->receiver_timestamp << " tx: "<< header->sender_timestamp << "listLen: "<< listLen << endl; 
+		std::cout<< "rx t:" << header->receiver_timestamp << " tx: "<< header->sender_timestamp
+			<< " oneway us:" << oneway_ns / 1000 << " listLen: "<< listLen << endl; 
 		sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
 	}
 	//free(pkt_list);

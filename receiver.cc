@@ -13,6 +13,7 @@
 
 #include "tcp-header.hh"
 #include "udp-socket.hh"
+#include "packet_list.h"
 
 #define BUFFSIZE 15000
 
@@ -21,49 +22,32 @@ using namespace std;
 // used to lock socket used to listen for packets from the sender
 mutex socket_lock; 
 
-// Periodically probes a server with a well known IP address and looks for
-// senders that want to connect with this application. In case such a 
-// sender exists, tries to punch holes in the NAT (assuming that this 
-// process is a NAT).
-//
-// To be run as a separate thread, so the rest of the code can assume that 
-// packets arrive as if no NAT existed.
-//
-// Currently is only robust if the sender is not behind a NAT, but only the 
-// sender needs to be changed to fix this. 
+bool enqueue_pkt(packet_node* pkt_list, TCPHeader* header, int received, uint64_t oneway_us, FILE* fd_delay){
+	packet_node* node; 
+	pkt_header_t pkt_header;
 
-void punch_NAT(string serverip, UDPSocket &sender_socket) {
-	const int buffsize = 2048;
-	char buff[buffsize];
-	UDPSocket::SockAddress addr_holder;
-	UDPSocket server_socket;
+	node                        = createNode();
 
-	server_socket.bindsocket(serverip, 4839, 0);
-	while (1) {
-		this_thread::sleep_for( chrono::seconds(5) );
+	//copy the TCP header 
+	memcpy(&node->pkt_header, header, sizeof(TCPHeader));
 
-		server_socket.senddata(string("Listen").c_str(), 6, serverip, 4839);
-		server_socket.receivedata(buff, buffsize, -1, addr_holder);
+	pkt_header.sequence_number  = header->seq_num;
+	pkt_header.ack_number       = 0;
+	pkt_header.sent_timestamp   = header->sender_timestamp;
+	pkt_header.sender_id        = header->src_id;
+	pkt_header.recv_len         = received;
+	node->pkt_header 	    = pkt_header;	
 
-		char ip_addr[32];
-		int port;
-		sscanf(buff, "%s:%d", ip_addr, &port);
-
-		int attempt_count = 0;
-		const int num_attempts = 500;
-		while(attempt_count < num_attempts) {
-			socket_lock.lock();
-				sender_socket.senddata("NATPunch", 8, string(ip_addr), port);
-				// keep the timeout short so that acks are sent in time
-				int received = sender_socket.receivedata(buff, buffsize, 5, 
-															addr_holder);
-			socket_lock.unlock();
-			if (received == 0) break;
-			++ attempt_count;
-		}
-		cout << "Could not connect to sender at " << UDPSocket::decipher_socket_addr(addr_holder) << endl;
-	}
+	//printf("recv:%d\n", recv_len);
+	node->recv_t_us         = header->receiver_timestamp / 1000; // ns -> us
+	node->pkt_header        = pkt_header;
+	node->oneway_us         = oneway_us ;  
+	node->oneway_us_new     = oneway_us;  
+	node->revert_flag       = false;
+	insertNode_checkTime(pkt_list, node, fd_delay);
+	return true;
 }
+
 
 // For each packet received, acks back the pseudo TCP header with the 
 // current  timestamp
@@ -71,8 +55,15 @@ void echo_packets(UDPSocket &sender_socket) {
 	char buff[BUFFSIZE];
 	sockaddr_in sender_addr;
 
-	printf("echo packets!\n");
+	system("mkdir ./data");	
 
+	FILE* fd_delay;
+	fd_delay = fopen("./data/cleaned_delay","w+");
+    	fclose(fd_delay);
+    	fd_delay = fopen("./data/cleaned_delay","a+");
+
+
+	printf("echo packets!\n");
 	chrono::high_resolution_clock::time_point start_time_point = \
 		chrono::high_resolution_clock::now();
 
@@ -95,26 +86,52 @@ void echo_packets(UDPSocket &sender_socket) {
 	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
 	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
 
+	packet_node* pkt_list = createNode();
+	packet_node* node;
+	uint64_t recv_time_ns;
 	while (1) {
 		int received __attribute((unused)) = -1;
 		while (received == -1) {
-			//socket_lock.lock();
-				received = sender_socket.receivedata(buff, BUFFSIZE, -1, \
-					sender_addr);
-			//socket_lock.unlock();
+			//received = sender_socket.receivedata(buff, BUFFSIZE, -1, sender_addr);
+			received = sender_socket.receivedata_w_time(buff, BUFFSIZE, -1, &recv_time_ns, sender_addr);
 			assert( received != -1 );
 		}
 
 		TCPHeader *header = (TCPHeader*)buff;
+		
 		header->receiver_timestamp = \
 			chrono::duration_cast<chrono::duration<double>>(
 				chrono::high_resolution_clock::now() - start_time_point
 			).count()*1000; //in milliseconds
+
 		header->adjust_us = 222;
-		//socket_lock.lock();
-			sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
-		//socket_lock.unlock();
+
+		pkt_header_t pkt_header;
+		node                        = createNode();
+		pkt_header.sequence_number  = header->seq_num;
+		pkt_header.ack_number       = 0;
+		pkt_header.sent_timestamp   = header->sender_timestamp;
+		pkt_header.sender_id        = header->src_id;
+		pkt_header.recv_len         = received;
+		node->pkt_header 	    = pkt_header;	
+
+		memcpy(&node->pkt_header, header, sizeof(TCPHeader));
+
+		uint64_t oneway_ns = 0;
+		//printf("recv:%d\n", recv_len);
+		node->recv_t_us         = recv_time_ns / 1000; // ns -> us
+		node->pkt_header        = pkt_header;
+		node->oneway_us         = oneway_ns / 1000;  // ns -> us
+		node->oneway_us_new     = oneway_ns / 1000;  // ns -> us
+		node->revert_flag       = false;
+		insertNode_checkTime(pkt_list, node, fd_delay);
+
+            	int  listLen = listLength(pkt_list);
+		std::cout<< "rx t:" << header->receiver_timestamp << " tx: "<< header->sender_timestamp << "listLen: "<< listLen << endl; 
+		sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
 	}
+	//free(pkt_list);
+    	fclose(fd_delay);
 }
 
 
@@ -122,7 +139,6 @@ int main(int argc, char* argv[]) {
 	int port = 9004;
 	if (argc == 2)
 		port = atoi(argv[1]);
-
 
 	UDPSocket sender_socket;
 	sender_socket.bindsocket(port);

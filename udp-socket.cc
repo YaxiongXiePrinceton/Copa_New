@@ -148,6 +148,90 @@ int UDPSocket::receivedata(char* buffer, int bufsize, int timeout, sockaddr_in &
 	}
 }
 
+int recv_msg_from_sock(int sock, char* buffer, int bufsize, int timeout, uint64_t* timestamp_ns, sockaddr_in* other_addr){
+
+  /* data structure to receive timestamp, source address, and payload */
+  struct sockaddr_in remote_addr;
+  struct msghdr header;
+  struct iovec msg_iovec;
+
+  const int BUF_SIZE = 2048;
+
+  //char msg_payload[ BUF_SIZE ];
+  char msg_control[ BUF_SIZE ];
+  header.msg_name = other_addr;
+  header.msg_namelen = sizeof( remote_addr );
+  //msg_iovec.iov_base = msg_payload;
+  msg_iovec.iov_base = buffer;
+  msg_iovec.iov_len = bufsize;
+  header.msg_iov = &msg_iovec;
+  header.msg_iovlen = 1;
+  header.msg_control = msg_control;
+  header.msg_controllen = BUF_SIZE;
+  header.msg_flags = 0;
+
+  ssize_t received_len = recvmsg( sock, &header, 0 );
+  if ( received_len < 0 ) {
+	return received_len;
+  }
+  if ( received_len > BUF_SIZE ) {
+    fprintf( stderr, "Received oversize datagram (size %d) and limit is %d\n",
+             static_cast<int>( received_len ), BUF_SIZE );
+    exit( 1 );
+  }
+  /* verify presence of timestamp */
+  struct cmsghdr *ts_hdr = CMSG_FIRSTHDR( &header );
+  assert( ts_hdr );
+  assert( ts_hdr->cmsg_level == SOL_SOCKET );
+  assert( ts_hdr->cmsg_type == SO_TIMESTAMPNS );
+
+  struct timespec ts = *(struct timespec *)CMSG_DATA( ts_hdr );
+  *timestamp_ns = ts.tv_sec * 1000000000 + ts.tv_nsec;
+  return received_len;
+
+}
+int UDPSocket::receivedata_w_time(char* buffer, int bufsize, int timeout, uint64_t* timestamp_ns, sockaddr_in &other_addr){
+	assert(bound); // Socket not bound to an address. Please either use 'bind' or 'sendto'
+
+	unsigned int other_len;
+
+	struct pollfd pfds[1];
+	pfds[0].fd = udp_socket;
+	pfds[0].events = POLLIN;
+
+	int poll_val = poll(pfds, 1, timeout);
+	if( poll_val == 1){
+		if(pfds[0].revents & POLLIN){
+			//other_len = sizeof(other_addr);
+			//int res = recvfrom( udp_socket, buffer, bufsize, 0, (struct sockaddr*) &other_addr, &other_len );
+			int res = recv_msg_from_sock( udp_socket, buffer, bufsize, 0, timestamp_ns, &other_addr);
+			if ( res == -1 ){
+				std::cerr<<"Error while receiving datagram. Code: "<<errno<<std::endl;
+			}
+			buffer[res] = '\0'; //terminating null character is not added by default
+
+			return res;
+		}
+		else{
+			std::cerr<<"There was an error while polling. Value of event field: "<<pfds[0].revents<<endl;
+			return -1;
+		}
+	}
+	else if ( poll_val == 0){
+		return 0; //there was a timeout
+	}
+	else if ( poll_val == -1 ){
+		if ( errno == 4 )
+			return receivedata(buffer, bufsize, timeout, other_addr); //to make gprof work
+		std::cerr<<"There was an error while polling. Code: "<<errno<<endl;
+		return -1;
+	}
+	else{
+		assert( false ); //should never come here
+	}
+}
+
+
 void UDPSocket::decipher_socket_addr(sockaddr_in addr, std::string& ip_addr, int& port) {
 	ip_addr = inet_ntoa(addr.sin_addr);
 	port = ntohs(addr.sin_port);

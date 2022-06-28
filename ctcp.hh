@@ -95,6 +95,19 @@ public:
 
 using namespace std;
 
+uint64_t timestamp_ns()
+{
+  struct timespec ts;
+
+  if ( clock_gettime( CLOCK_REALTIME, &ts ) < 0 ) {
+    perror( "clock_gettime" );
+    exit( 1 );
+  }
+
+  uint64_t ret = ts.tv_sec * 1000000000 + ts.tv_nsec;
+  return ret;
+}
+
 double current_timestamp( chrono::high_resolution_clock::time_point &start_time_point ){
   using namespace chrono;
   high_resolution_clock::time_point cur_time_point = high_resolution_clock::now();
@@ -240,6 +253,7 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
       header.src_id = src_id;
       header.sender_timestamp = cur_time;
       header.receiver_timestamp = 0;
+      header.tx_timestamp = timestamp_ns();
       header.adjust_us = 0;
       memcpy( buf, &header, sizeof(TCPHeader) );
       socket.senddata( buf, packet_size, NULL );

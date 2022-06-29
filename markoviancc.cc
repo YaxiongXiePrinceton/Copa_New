@@ -222,7 +222,7 @@ void MarkovianCC::onACK(int ack,
 
 	
   FILE* fd_rtt = fopen("./data/rtt.txt","a+");
-  fprintf(fd_rtt, "%f\t%f\n", cur_time, curr_rtt);
+  fprintf(fd_rtt, "%f\t%f\t%d\n", cur_time, curr_rtt, ack);
   fclose(fd_rtt);
 
   min_rtt = rtt_window.get_min_rtt(); //min(min_rtt, cur_time - sent_time);

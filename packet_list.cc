@@ -78,7 +78,8 @@ void delete_1st_element(packet_node* head, FILE* fd){
         return;
     }
 
-    fprintf(fd, "%ld\t%ld\t%ld\n", head->next->recv_t_us, head->next->oneway_us, head->next->oneway_us_new);
+    fprintf(fd, "%ld\t%ld\t%ld\t%d\n", head->next->recv_t_us, head->next->oneway_us, \
+		head->next->oneway_us_new, head->next->pkt_header.sequence_number);
     free(head->next);
 
     if(p != NULL){

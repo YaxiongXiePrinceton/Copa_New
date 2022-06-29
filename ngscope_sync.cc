@@ -517,6 +517,8 @@ void ngscope_sync_extract_data_from_dci(ue_dci_t* dci_vec,
         int idx         = header + i;
         idx             = idx % NOF_LOG_DCI;
         recv_t_us[i]    = dci_vec[idx].time_stamp;
+	//printf("%ld ",dci_vec[idx].time_stamp);
+
         tbs[i]          = dci_vec[idx].tbs;
         reTx[i]         = dci_vec[idx].reTx;
         tti[i]          = dci_vec[idx].tti;

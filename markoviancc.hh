@@ -2,6 +2,7 @@
 #define MARKOVIANCC_HH
 
 #undef SIMULATION_MODE
+#include <stdio.h>
 
 #include "ccc.hh"
 #ifdef SIMULATION_MODE
@@ -105,7 +106,6 @@ class MarkovianCC : public CCC {
   int flow_id;
   
   Time cur_tick;
-  
   double current_timestamp();
   
   double randomize_intersend(double);

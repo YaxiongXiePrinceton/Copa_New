@@ -1,14 +1,14 @@
 pMEMORY_STYLE := ./protobufs-default
 
 CXX := g++
-CXXFLAGS := -DHAVE_CONFIG_H -std=c++11 -pthread -pedantic -Wno-unused-result -Wno-unused-parameter -Wno-unused-variable -Wall -Wextra -Weffc++ -Werror -Wno-deprecated-copy -fno-default-inline -g -O2 -fPIC
+CXXFLAGS := -DHAVE_CONFIG_H -std=c++11 -pthread -pedantic -Wno-comment -Wno-unused-result -Wno-unused-parameter -Wno-unused-variable -Wall -Wextra -Weffc++ -Werror -Wno-deprecated-copy -fno-default-inline -g -O2 -fPIC
 INCLUDES :=	-I./protobufs-default -I./udt
 
 LIBS     := -ljemalloc -lm -pthread -lprotobuf -lpthread -ljemalloc
 #$(MEMORY_STYLE)/libremyprotos.a
 OBJECTS  := random.o memory.o memoryrange.o rat.o whisker.o whiskertree.o udp-socket.o traffic-generator.o remycc.o markoviancc.o estimators.o rtt-window.o #protobufs-default/dna.pb.o
 
-all: sender receiver
+all: sender receiver copa_rx
 
 python_bindings: pygenericcc.so
 
@@ -26,8 +26,12 @@ sender: $(OBJECTS) sender.o protobufs-default/dna.pb.o # $(MEMORY_STYLE)/libremy
 prober: prober.o udp-socket.o
 	$(CXX) $(inputs) -o $(output) $(LIBS)
 
-receiver: receiver.o udp-socket.o packet_list.o ngscope_sync.o socket.o
+receiver: receiver.o udp-socket.o packet_list.o ngscope_sync.o socket.o ngscope_sock.o
 	$(CXX) $(inputs) -Wno-unused-variable  -Wno-unused-parameter -o $(output) $(LIBS) 
+
+copa_rx: copa_recv.o udp-socket.o packet_list.o ngscope_sync.o socket.o ngscope_sock.o
+	$(CXX) $(inputs) -Wno-unused-variable  -Wno-unused-parameter -o $(output) $(LIBS) 
+
 
 python-wrapper.o: python-wrapper.cc
 	$(CXX) -I/usr/include/python2.7 $(INCLUDES) -fPIC $(CXXFLAGS) -c python-wrapper.cc -o python-wrapper.o

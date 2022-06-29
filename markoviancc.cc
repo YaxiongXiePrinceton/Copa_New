@@ -37,7 +37,10 @@ void MarkovianCC::init() {
   if (utility_mode != CONSTANT_DELTA)
     delta = 1;
   
-  unacknowledged_packets.clear();
+  unacknowledged_packets.clear(); 
+  system("mkdir ./data");
+  FILE* fd_rtt = fopen("./data/rtt.txt","w+");
+  fclose(fd_rtt);
 
   rtt_unacked.reset();
   rtt_window.clear();
@@ -217,6 +220,10 @@ void MarkovianCC::onACK(int ack,
   //rtt_window.new_rtt_sample(cur_time - sent_time, cur_time);
   rtt_window.new_rtt_sample(curr_rtt, cur_time);
 
+	
+  FILE* fd_rtt = fopen("./data/rtt.txt","a+");
+  fprintf(fd_rtt, "%f\t%f\n", cur_time, curr_rtt);
+  fclose(fd_rtt);
 
   min_rtt = rtt_window.get_min_rtt(); //min(min_rtt, cur_time - sent_time);
   assert(rtt_window.get_unjittered_rtt() >= min_rtt);

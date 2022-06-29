@@ -20,6 +20,7 @@ struct linkedList_t{
     uint64_t        oneway_us_new;
 
     bool            revert_flag;
+    bool            acked;
     struct linkedList_t* next;
     struct linkedList_t* prev;
 };

@@ -54,6 +54,7 @@ tmp*
 *.pyc
 
 # Executables
+copa_rx
 sender
 receiver
 prober

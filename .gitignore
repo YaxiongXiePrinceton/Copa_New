@@ -32,7 +32,7 @@
 *.swo
 
 # data folder
-./data
+data/*
 
 # Project specific edits
 

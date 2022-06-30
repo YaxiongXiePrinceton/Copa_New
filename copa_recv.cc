@@ -104,6 +104,11 @@ void send_pkt_w_time(UDPSocket &sender_socket, sockaddr_in* sender_addr, packet_
 void echo_packets(UDPSocket &sender_socket) {
 	char buff[BUFFSIZE];
 	sockaddr_in sender_addr;
+	
+	FILE *fd_ack;
+	fd_ack = fopen("./data/client_ack_log","w+");
+        fclose(fd_ack);
+        fd_ack = fopen("./data/client_ack_log","a+");
 
 	uint64_t dci_recv_t_us[NOF_LOG_DCI];
 	uint8_t  dci_reTx[NOF_LOG_DCI];
@@ -132,6 +137,7 @@ void echo_packets(UDPSocket &sender_socket) {
 	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
 	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
 	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
+	
         uint64_t recv_time_ns;
 	while (1) {
 		if(go_exit) break;
@@ -151,7 +157,10 @@ void echo_packets(UDPSocket &sender_socket) {
 			).count()*1000; //in milliseconds
 		
 		sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
+		uint64_t oneway_ns      =  recv_time_ns - header->tx_timestamp;
+		fprintf(fd_ack, "%ld\t%ld\t%d\n", recv_time_ns, oneway_ns, header->seq_num);
 	}
+	fclose(fd_ack);
 }
 
 

@@ -261,7 +261,7 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
       //header.tx_timestamp = (uint64_t)lower_t + ((uint64_t)upper_t << 32);
       header.tx_timestamp = timestamp;
 
-      std::cout << "Seq: " << seq_num << " timestamp" << timestamp << " net:" << header.tx_timestamp<< endl;
+      //std::cout << "Seq: " << seq_num << " timestamp" << timestamp << " net:" << header.tx_timestamp<< endl;
 
       header.adjust_us = 0;
       memcpy( buf, &header, sizeof(TCPHeader) );

@@ -231,7 +231,13 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
   cur_time = current_timestamp( start_time_point );
   congctrl.set_timestamp(cur_time);
   congctrl.init();
+  system("mkdir ./data");
+  FILE* fd_rtt = fopen("./data/rtt.txt","w+");
+  fclose(fd_rtt);
+  fd_rtt = fopen("./data/rtt.txt","a+");
 
+  uint64_t recv_time_ns;
+ 
   while ((byte_switched?(num_packets_transmitted*data_size):cur_time) < flow_size) {
     cur_time = current_timestamp( start_time_point );
     if (cur_time - last_ack_time > 2000) {
@@ -287,7 +293,9 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
       timeout = min( 1000.0, _last_send_time + congctrl.get_intersend_time()*train_length - cur_time );
 
     sockaddr_in other_addr;
-    if(socket.receivedata(buf, packet_size, timeout, other_addr) == 0) {
+
+   //if(socket.receivedata(buf, packet_size, timeout, other_addr) == 0) {
+    if(socket.receivedata_w_time(buf, packet_size, timeout, &recv_time_ns, other_addr) == 0) {
       cur_time = current_timestamp(start_time_point);
       if(cur_time > _last_send_time + congctrl.get_timeout())
         congctrl.onTimeout();
@@ -331,6 +339,12 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
     this->tot_packets_transmitted += 1;
 
     if ((ack_header.seq_num - 1) % train_length == 0) {
+
+      double curr_rtt = cur_time - ack_header.sender_timestamp - ((double)ack_header.adjust_us / 1000);
+      uint64_t oneway_ns = recv_time_ns - ack_header.tx_timestamp;
+	
+      fprintf(fd_rtt, "%f\t%f\t%d\n", cur_time, curr_rtt, ack_header.seq_num);
+
       congctrl.set_timestamp(cur_time);
       congctrl.onACK(ack_header.seq_num / train_length,
                      ack_header.receiver_timestamp,
@@ -359,6 +373,8 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
   double avg_throughput = tot_bytes_transmitted / ( tot_time_transmitted / 1000.0);
   double avg_delay = (tot_delay / 1000) / tot_packets_transmitted;
   std::cout<<"\n\tAvg. Throughput: "<<avg_throughput<<" bytes/sec\n\tAverage Delay: "<<avg_delay<<" sec/packet\n";
+
+  fclose(fd_rtt);
 
   if( LINK_LOGGING )
     link_logfile.close();

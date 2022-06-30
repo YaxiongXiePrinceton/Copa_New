@@ -147,7 +147,7 @@ void echo_packets(UDPSocket &sender_socket) {
 			chrono::high_resolution_clock::now() - start_time_point
 		).count()*1000; //in milliseconds
 
-	
+	printf("SIZE of TCP header:%ld\n", sizeof(TCPHeader));
 	// hardcode the AWS server address	
 	sockaddr_in dest_addr;
 	dest_addr.sin_port = htons(9004);

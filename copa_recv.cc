@@ -124,7 +124,8 @@ void echo_packets(UDPSocket &sender_socket) {
 		chrono::duration_cast<chrono::duration<double>>(
 			chrono::high_resolution_clock::now() - start_time_point
 		).count()*1000; //in milliseconds
-
+	        
+	printf("SIZE of TCP header:%ld\n", sizeof(TCPHeader));
 	
 	// hardcode the AWS server address	
 	sockaddr_in dest_addr;
@@ -155,7 +156,9 @@ void echo_packets(UDPSocket &sender_socket) {
 			chrono::duration_cast<chrono::duration<double>>(
 				chrono::high_resolution_clock::now() - start_time_point
 			).count()*1000; //in milliseconds
-		
+
+		header->tx_timestamp = timestamp_ns();
+
 		sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
 		uint64_t oneway_ns      =  recv_time_ns - header->tx_timestamp;
 		fprintf(fd_ack, "%ld\t%ld\t%d\n", recv_time_ns, oneway_ns, header->seq_num);

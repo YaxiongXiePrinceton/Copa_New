@@ -38,9 +38,10 @@ void MarkovianCC::init() {
     delta = 1;
   
   unacknowledged_packets.clear(); 
-  system("mkdir ./data");
-  FILE* fd_rtt = fopen("./data/rtt.txt","w+");
-  fclose(fd_rtt);
+
+  //system("mkdir ./data");
+  //FILE* fd_rtt = fopen("./data/rtt.txt","w+");
+  //fclose(fd_rtt);
 
   rtt_unacked.reset();
   rtt_window.clear();
@@ -209,7 +210,8 @@ void MarkovianCC::update_intersend_time() {
 
 void MarkovianCC::onACK(int ack, 
 			double receiver_timestamp __attribute((unused)),
-			double sent_time, int adjust_us, int delta_class __attribute((unused))) {
+			double sent_time, int adjust_us, 
+			int delta_class __attribute((unused))) {
   int seq_num = ack - 1;
   double cur_time = current_timestamp();
   assert(cur_time > sent_time);
@@ -219,11 +221,10 @@ void MarkovianCC::onACK(int ack,
   /* NG-Scope rtt update */
   //rtt_window.new_rtt_sample(cur_time - sent_time, cur_time);
   rtt_window.new_rtt_sample(curr_rtt, cur_time);
-
 	
-  FILE* fd_rtt = fopen("./data/rtt.txt","a+");
-  fprintf(fd_rtt, "%f\t%f\t%d\n", cur_time, curr_rtt, ack);
-  fclose(fd_rtt);
+  //FILE* fd_rtt = fopen("./data/rtt.txt","a+");
+  //fprintf(fd_rtt, "%f\t%f\t%d\n", cur_time, curr_rtt, ack);
+  //fclose(fd_rtt);
 
   min_rtt = rtt_window.get_min_rtt(); //min(min_rtt, cur_time - sent_time);
   assert(rtt_window.get_unjittered_rtt() >= min_rtt);

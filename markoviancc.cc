@@ -228,7 +228,7 @@ void MarkovianCC::onACK(int ack,
   min_rtt = rtt_window.get_min_rtt(); //min(min_rtt, cur_time - sent_time);
   assert(rtt_window.get_unjittered_rtt() >= min_rtt);
 
-  std::cout << "adjust us:" << adjust_us << "RTT:" << cur_time-sent_time << "adjusted rtt:" << curr_rtt << endl;
+  //std::cout << "adjust us:" << adjust_us << "RTT:" << cur_time-sent_time << "adjusted rtt:" << curr_rtt << endl;
   // loss_rate = loss_rate * (1.0 - alpha_loss);
 
   if (prev_ack_time != 0) {

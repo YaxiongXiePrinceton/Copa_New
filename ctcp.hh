@@ -343,7 +343,7 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
       double curr_rtt = cur_time - ack_header.sender_timestamp - ((double)ack_header.adjust_us / 1000);
       uint64_t oneway_ns = recv_time_ns - ack_header.tx_timestamp;
 	
-      fprintf(fd_rtt, "%f\t%f\t%d\n", cur_time, curr_rtt, ack_header.seq_num);
+      fprintf(fd_rtt, "%f\t%f\t%ld\t%d\n", cur_time, curr_rtt, oneway_ns, ack_header.seq_num);
 
       congctrl.set_timestamp(cur_time);
       congctrl.onACK(ack_header.seq_num / train_length,

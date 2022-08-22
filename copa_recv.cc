@@ -105,10 +105,16 @@ void echo_packets(UDPSocket &sender_socket) {
 	char buff[BUFFSIZE];
 	sockaddr_in sender_addr;
 	
-	FILE *fd_ack;
+	FILE *fd_ack, *fd_t_dif;
+
 	fd_ack = fopen("./data/client_ack_log","w+");
         fclose(fd_ack);
         fd_ack = fopen("./data/client_ack_log","a+");
+
+	fd_t_dif = fopen("./data/sending_interval.txt","w+");
+        fclose(fd_t_dif);
+        fd_t_dif = fopen("./data/sending_interval.txt","a+");
+
 
 	uint64_t dci_recv_t_us[NOF_LOG_DCI];
 	uint8_t  dci_reTx[NOF_LOG_DCI];
@@ -138,7 +144,8 @@ void echo_packets(UDPSocket &sender_socket) {
 	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
 	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
 	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
-	
+
+	uint64_t last_time = timestamp_ns();
         uint64_t recv_time_ns;
 	while (1) {
 		if(go_exit) break;
@@ -157,11 +164,13 @@ void echo_packets(UDPSocket &sender_socket) {
 				chrono::high_resolution_clock::now() - start_time_point
 			).count()*1000; //in milliseconds
 
-		header->tx_timestamp = timestamp_ns();
 
-		sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
 		uint64_t oneway_ns      =  recv_time_ns - header->tx_timestamp;
-		fprintf(fd_ack, "%ld\t%ld\t%d\n", recv_time_ns, oneway_ns, header->seq_num);
+		header->tx_timestamp 	= timestamp_ns();
+		sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
+		fprintf(fd_ack, "%ld\t%ld\t%d\t%ld\n", recv_time_ns, oneway_ns, header->seq_num, header->tx_timestamp);
+		fprintf(fd_t_dif, "%ld\n", header->tx_timestamp - last_time);
+		last_time = header->tx_timestamp;
 	}
 	fclose(fd_ack);
 }

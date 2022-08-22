@@ -105,7 +105,7 @@ void echo_packets(UDPSocket &sender_socket) {
 	char buff[BUFFSIZE];
 	sockaddr_in sender_addr;
 
-	FILE *FD, *fd_sync, *fd_offset, *fd_delay;
+	FILE *FD, *fd_sync, *fd_offset, *fd_delay, *fd_ack;
 	system("mkdir ./data");	
 
 	fd_sync = fopen("./data/dci_sync_delay_sum","w+");
@@ -119,6 +119,11 @@ void echo_packets(UDPSocket &sender_socket) {
 	fd_delay = fopen("./data/cleaned_delay","w+");
 	fclose(fd_delay);
 	fd_delay = fopen("./data/cleaned_delay","a+");
+
+	fd_ack = fopen("./data/client_ack_log","w+");
+	fclose(fd_ack);
+	fd_ack = fopen("./data/client_ack_log","a+");
+
 
 
 	uint64_t dci_recv_t_us[NOF_LOG_DCI];
@@ -187,7 +192,9 @@ void echo_packets(UDPSocket &sender_socket) {
 			chrono::duration_cast<chrono::duration<double>>(
 				chrono::high_resolution_clock::now() - start_time_point
 			).count()*1000; //in milliseconds
-
+		uint64_t oneway_ns      =  recv_time_ns - header->tx_timestamp;
+		fprintf(fd_ack, "%ld\t%ld\t%d\n", recv_time_ns, oneway_ns, header->seq_num);
+		
 		enqueue_pkt(pkt_list, header, received, recv_time_ns, fd_delay);
 		int  listLen = listLength(pkt_list);
 		std::cout<< "rx t:" << header->receiver_timestamp << " tx: "<< header->sender_timestamp
@@ -267,6 +274,9 @@ void echo_packets(UDPSocket &sender_socket) {
 	close(ngscope_client_sock);
 
     	fclose(fd_delay);
+    	fclose(fd_sync);
+    	fclose(fd_offset);
+    	fclose(fd_ack);
 }
 
 

@@ -287,6 +287,7 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
       seq_num++;
 	  nof_pkt++;
     }
+	printf("nof_pkt:%d\n", nof_pkt);
     uint64_t t2 = timestamp_ns();
     if (cur_time - _last_send_time >= congctrl.get_intersend_time() * train_length ||
         seq_num >= _largest_ack + congctrl.get_the_window()) {
@@ -360,7 +361,8 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
     }
 
     uint64_t t3 = timestamp_ns();
-	fprintf(fd_time,"%ld\t%ld\t%ld\t%f\t%d\n", t1,t2,t3, timeout,nof_pkt);
+	fprintf(fd_time,"%ld\t%ld\t%ld\t" t1, t2, t3);
+	fprintf(fd_time,"%f\t%d\n" timeout,nof_pkt);
 #ifdef SCALE_SEND_RECEIVE_EWMA
     //assert(false);
 #endif

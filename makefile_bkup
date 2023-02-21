@@ -7,11 +7,7 @@ INCLUDES :=	-I./protobufs-default -I./udt
 LIBS     := -ljemalloc -lm -pthread -lprotobuf -lpthread -ljemalloc
 #$(MEMORY_STYLE)/libremyprotos.a
 
-OBJECTS  := random.o memory.o memoryrange.o rat.o whisker.o whiskertree.o udp-socket.o traffic-generator.o remycc.o markoviancc.o estimators.o rtt-window.o 
-
-#NGSCOPE :=ngscope_lib/ngscope_packet_list.o ngscope_lib/ngscope_sync.o ngscope_lib/ngscope_sock.o ngscope_lib/ngscope_dci_recv.o ngscope_lib/ngscope_dci.o ngscope_lib/ngscope_util.o ngscope_lib/ngscope_reTx.o
-
-#protobufs-default/dna.pb.o  
+OBJECTS  := random.o memory.o memoryrange.o rat.o whisker.o whiskertree.o udp-socket.o traffic-generator.o remycc.o markoviancc.o estimators.o rtt-window.o #protobufs-default/dna.pb.o
 
 all: sender  test_dci_recv receiver copa_rx
 #all: sender receiver 
@@ -33,18 +29,15 @@ sender: $(OBJECTS) sender.o protobufs-default/dna.pb.o # $(MEMORY_STYLE)/libremy
 prober: prober.o udp-socket.o
 	$(CXX) $(inputs) -o $(output) $(LIBS)
 
-#ngscope_lib/ngscope_packet_list.o: ngscope_lib/ngscope_packet_list.cc
-#ngscope_lib/ngscope_sync.o: ngscope_lib/ngscope_sync.cc
-#ngscope_lib/ngscope_sock.o: ngscope_lib/ngscope_sock.cc
-#ngscope_lib/ngscope_dci_recv.o: ngscope_lib/ngscope_dci_recv.cc
-#ngscope_lib/ngscope_dci.o: ngscope_lib/ngscope_dci.cc
-#ngscope_lib/ngscope_util.o: ngscope_lib/ngscope_util.cc
-#ngscope_lib/ngscope_reTx.o: ngscope_lib/ngscope_reTx.cc
-#ngscope_lib/.o: ngscope_lib/.cc
+ngscope_lib/ngscope_packet_list.o: ngscope_lib/ngscope_packet_list.cc
+ngscope_lib/.o: ngscope_lib/.cc
+ngscope_lib/.o: ngscope_lib/.cc
+ngscope_lib/.o: ngscope_lib/.cc
+ngscope_lib/.o: ngscope_lib/.cc
+ngscope_lib/.o: ngscope_lib/.cc
 
 test_dci_recv: test_dci_recv.o  ngscope_sock.o  ngscope_dci.o ngscope_dci_recv.o ngscope_util.o ngscope_reTx.o 
 	$(CXX) $(inputs) -Wno-unused-variable  -Wno-unused-parameter -o $(output) $(LIBS) 
-
 
 receiver: receiver.o udp-socket.o ngscope_packet_list.o ngscope_sync.o  socket.o ngscope_sock.o ngscope_dci_recv.o ngscope_dci.o ngscope_util.o ngscope_reTx.o
 	$(CXX) $(inputs) -Wno-unused-variable  -Wno-unused-parameter -o $(output) $(LIBS) 

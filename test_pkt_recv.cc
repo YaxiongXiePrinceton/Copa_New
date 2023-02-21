@@ -17,9 +17,7 @@
 #include "ngscope_packet_list.h"
 #include "ngscope_sync.h"
 #include "ngscope_sock.h"
-#include "ngscope_reTx.h"
 #include "ngscope_dci.h"
-#include "ngscope_dci_recv.h"
 
 #define BUFFSIZE 15000
 #define DELAY_THD 2
@@ -30,8 +28,6 @@ bool go_exit = false;
 ngscope_dci_CA_t dci_ca;
 pthread_mutex_t dci_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-ngscope_reordering_buf_t reTx_buffer;
-int dci_pkt_offset =0;
 // used to lock socket used to listen for packets from the sender
 //mutex socket_lock; 
 
@@ -67,7 +63,7 @@ bool enqueue_pkt(packet_node* pkt_list, TCPHeader* header, int received, uint64_
 	pkt_header.ack_number       = 0;
 	pkt_header.sent_timestamp   = header->tx_timestamp;
 	pkt_header.sender_id        = header->src_id;
-	pkt_header.recv_len_byte    = received;
+	pkt_header.recv_len         = received;
 	node->pkt_header 	    	= pkt_header;	
 
 	memcpy(&node->tcp_header, header, sizeof(TCPHeader));
@@ -79,11 +75,10 @@ bool enqueue_pkt(packet_node* pkt_list, TCPHeader* header, int received, uint64_
 	node->oneway_us         = oneway_ns / 1000;  // ns -> us
 	node->oneway_us_new     = oneway_ns / 1000;  // ns -> us
 	node->revert_flag       = false;
-	node->burst_start       = false;
 	node->acked       		= false;
-	//printf("before insertnode !\n");
+	printf("before insertnode !\n");
 	ngscope_list_insertNode_checkTime(pkt_list, node, fd_delay);
-	//printf("after insertnode !\n");
+	printf("after insertnode !\n");
 	return true;
 }
 
@@ -133,7 +128,7 @@ void echo_packets(UDPSocket &sender_socket) {
 	fclose(fd_ack);
 	fd_ack = fopen("./data/client_ack_log","a+");
 
-	ngscope_reTx_init_buf(&reTx_buffer);
+
 
 //	uint64_t dci_recv_t_us[NOF_LOG_DCI];
 //	uint8_t  dci_reTx[NOF_LOG_DCI];
@@ -170,7 +165,7 @@ void echo_packets(UDPSocket &sender_socket) {
 
 	if (inet_aton("3.22.79.149", &dest_addr.sin_addr) == 0)
 	{
-		std::cerr<<"inet_aton failed while sending data. Code: "<<errno<<endl;
+	std::cerr<<"inet_aton failed while sending data. Code: "<<errno<<endl;
 	}
 	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
 	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
@@ -188,30 +183,19 @@ void echo_packets(UDPSocket &sender_socket) {
 	uint64_t recv_time_ns;
 	int _pkt_received = 0;
 
-	// prepare the offset
-	//int offset 	= 0; // used for storing the offset(result) 
-	int offset_size = 201;
-	int offset_vec[201] = {0};
-    for(int i=0; i<= 200; i++){
-        offset_vec[i]   = (i-100) * 100;
-	}
+	//int offset = 0;
 
-	int nof_cell = 0;
+
  	ngscope_dci_t* 		dci_all[MAX_NOF_RF_DEV];
 	for(int i=0; i<MAX_NOF_RF_DEV; i++){
 		dci_all[i] = (ngscope_dci_t*)malloc(sizeof(ngscope_dci_t));
 	}
 
 	uint64_t recent_dl_reTx_us[MAX_NOF_RF_DEV] = {0};
-	uint64_t recent_ul_reTx_us[MAX_NOF_RF_DEV] = {0};
-	//uint64_t dci_curr_time_us = 0;
-	bool new_dl_reTx;
-	bool new_ul_reTx;
+
+	bool new_reTx;
 	while (!go_exit) {
 		int received __attribute((unused)) = -1;
-		//uint64_t t1, t2;
-		//t1 = timestamp_ns();
-
 		while ( (received <= 0) && !go_exit) {
 			//received = sender_socket.receivedata(buff, BUFFSIZE, -1, sender_addr);
 			received = sender_socket.receivedata_w_time(buff, BUFFSIZE, 1000, &recv_time_ns, sender_addr);
@@ -221,7 +205,6 @@ void echo_packets(UDPSocket &sender_socket) {
         _pkt_received 		+= 1;
 		TCPHeader *header 	= (TCPHeader*)buff;
 
-		//printf("recv:%d\n", received);
 		// get the current timestamp	
 		header->receiver_timestamp = \
 			chrono::duration_cast<chrono::duration<double>>(
@@ -229,7 +212,6 @@ void echo_packets(UDPSocket &sender_socket) {
 
 		uint64_t oneway_ns  	=  recv_time_ns - header->tx_timestamp;
 		fprintf(fd_ack, "%ld\t%ld\t%d\n", recv_time_ns, oneway_ns, header->seq_num);
-
 		// Insert the packet into the list
 		enqueue_pkt(pkt_list, header, received, recv_time_ns, fd_delay);
 
@@ -237,106 +219,20 @@ void echo_packets(UDPSocket &sender_socket) {
 		//uint64_t time_anchor = 0;
 		pthread_mutex_lock(&dci_mutex);
 		//printf("Enter the loop --> reTx idx:%d tti:%d \n", _last_reTx_idx, _last_reTx_tti);
-		new_dl_reTx = ngscope_dci_new_dl_reTx(&dci_ca, recent_dl_reTx_us);
-		if(new_dl_reTx ){
+		new_reTx = ngscope_dci_new_dl_reTx(&dci_ca, recent_dl_reTx_us);
+		if(new_reTx ){
 			//printf("new RETX!\n");
  			ngscope_dci_extract_multi_cell(dci_all, dci_ca);
-			ngscope_dci_copy_dl_reTx(&dci_ca, recent_dl_reTx_us);
 		}
-
-		new_ul_reTx = ngscope_dci_new_dl_reTx(&dci_ca, recent_ul_reTx_us);
-		if(new_ul_reTx ){
-			printf("new ul RETX!\n");
-			ngscope_dci_copy_ul_reTx(&dci_ca, recent_ul_reTx_us);
-		}
-
-		nof_cell = dci_ca.nof_cell;
-		//dci_curr_time_us = dci_ca.curr_time;
-
+		//int nof_cell = dci_ca.nof_cell;
 		//time_anchor 	= dci_ca.cell_dci[0].dci[dci_ca.cell_dci[0].header - 1].time_stamp; 
 		pthread_mutex_unlock(&dci_mutex);
 
-		//printf("dci:%ld recv:%ld diff:%ld ms\n", dci_curr_time_us, recv_time_ns/1000, abs((long)(dci_curr_time_us - recv_time_ns/1000) /1000));
-
-		int nof_pkt = ngscope_list_length(pkt_list); 
-
-		uint64_t* pkt_reTx_rx_t_us;  // time of reTx before pruning of intersections
-		uint64_t* pkt_rx_t_us; 
-		uint64_t* pkt_oneway_us; 
-
-		uint64_t* dci_reTx_rx_t_us;  // time of reTx before pruning of intersections
-		uint16_t* dci_reTx_tti;  // time of reTx before pruning of intersections
-
-		// get the retransmission from the received packets
-		int nof_reTx_pkt = 0;  
-		int nof_reTx_dci = 0;  
-		//Extract the pkt recv time and the pkt recv time of the retransmission
-		pkt_rx_t_us 		= (uint64_t *)malloc(nof_pkt * sizeof(uint64_t));
-		pkt_oneway_us 		= (uint64_t *)malloc(nof_pkt * sizeof(uint64_t));
-
-		pkt_reTx_rx_t_us 	= ngscope_list_get_reTx(pkt_list, pkt_rx_t_us, pkt_oneway_us, nof_pkt, &nof_reTx_pkt);
-   
-		if(new_dl_reTx){
-			//ngscope_dci_print_single_cell(dci_all[0]);
-
-			dci_reTx_rx_t_us 	= ngscope_dci_get_reTx_t(dci_all, nof_cell, &nof_reTx_dci);
-			dci_reTx_tti 		= ngscope_dci_get_reTx_tti(dci_all, nof_cell, &nof_reTx_dci);
-
-			dci_pkt_offset = ngscope_sync_dci_pkt(pkt_reTx_rx_t_us, dci_reTx_rx_t_us, nof_reTx_pkt, nof_reTx_dci, offset_vec, offset_size);
-
-			ngscope_reTx_update_buf(&reTx_buffer, dci_all, nof_cell);
-			fprintf(fd_offset, "%d\n", dci_pkt_offset);
-
-			//for(int i=0; i<nof_reTx_pkt;i++){
-			//	fprintf(fd_sync, "%ld\t", pkt_reTx_rx_t_us[i]);
-			//}
-			//fprintf(fd_sync,"\n"); 
-
-			//for(int i=0; i<dci_all[0]->dl_dci.nof_reTx; i++){
-			//	fprintf(fd_sync, "%ld\t", dci_all[0]->dl_dci.reTx_t_us[i]);
-			//}
-			//fprintf(fd_sync,"\n"); 
-
-			////offset = ngscope_sync_dci_pkt(dci_all, pkt_list, nof_cell, fd_sync); 
-			//fprintf(fd_offset, "%d\t%d\t%d\n", offset, nof_reTx_pkt, nof_reTx_dci);
-
-			// we must free the allocated array 
-			free(dci_reTx_rx_t_us);
-			free(dci_reTx_tti);
-		}		
-
-		// adjust the timestamp according to the offset
-		ngscope_dci_sync_multi_cell(dci_all, nof_cell, dci_pkt_offset);
-
-		// update the reTx buffer
-		if(new_dl_reTx){
-			ngscope_reTx_update_buf(&reTx_buffer, dci_all, nof_cell);
-			printf("reTx buffer start:%d end:%d size:%ld active:%d recent_dci:%d\n", reTx_buffer.buf_start_tti, reTx_buffer.buf_last_tti, \
-					reTx_buffer.buf_size, reTx_buffer.buffer_active, dci_all[0]->dl_dci.reTx_tti[dci_all[0]->dl_dci.nof_reTx-1]);
+		if(new_reTx){
+			//offset = ngscope_sync_dci_pkt(dci_all, pkt_list, nof_cell, fd_sync); 
+			//fprintf(fd_offset, "%d\n", offset);
 		}
 
-		// if our reTx buffer hasn't found the starting pkt yet, e.g., a new reTx found
-		if(reTx_buffer.ready && reTx_buffer.buffer_active && !reTx_buffer.start_pkt_found){
-			int index= ngscope_reTx_find_burst_start(pkt_rx_t_us, pkt_oneway_us, nof_pkt, reTx_buffer.buf_start_t);
-			if(index > 0){
-				printf("found pkt start! index:%d nof_pkt:%d\n", index, nof_pkt);
-				reTx_buffer.start_pkt_found = true;
-				reTx_buffer.start_pkt_t 	= pkt_rx_t_us[index];
-				reTx_buffer.ref_oneway 		= ngscope_list_ave_oneway(pkt_oneway_us, nof_pkt, index, 5);
-				printf("Delay ref done\n");
-			}
-		}
-
-		if(reTx_buffer.ready && reTx_buffer.buffer_active && reTx_buffer.start_pkt_found){
-			ngscope_list_revert_delay(pkt_list, &reTx_buffer);
-		}
-
-		free(pkt_reTx_rx_t_us);
-		free(pkt_rx_t_us);
-		free(pkt_oneway_us);
-
-		//t2 = timestamp_ns();
-		//printf("time spend:%ld ms\n", (t2-t1)/1000000);
 //		printf(" tti: dci_header:%d nof_dci:%d\n",dci_header, nof_dci);
 //		if(tbs_res > 0){
 //			tbs_res = revert_last_pkt_reTx(pkt_list, tbs_res);
@@ -370,6 +266,9 @@ void echo_packets(UDPSocket &sender_socket) {
 		sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
 	}
 
+	for(int i=0; i<MAX_NOF_RF_DEV; i++){
+		free(dci_all[i]);
+	}
 
 	pthread_join(ngscope_recv_t, NULL);
 	close(ngscope_server_sock);

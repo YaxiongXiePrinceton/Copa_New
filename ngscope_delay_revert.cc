@@ -1,5 +1,3 @@
-#ifndef NGSCOPE_SYNC_HH
-#define NGSCOPE_SYNC_HH
 #include <assert.h>
 #include <errno.h>
 #include <sys/socket.h>
@@ -14,16 +12,11 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <stdlib.h>
 #include <stdio.h>
 
+#include "socket.hh"
+#include "ngscope_sync.h"
+#include "packet_list.h"
 
-#include "ngscope_dci.h"
 
-typedef struct{
-	uint64_t start;
-	uint64_t end;
-}time_seg_t;
-
-int ngscope_sync_dci_pkt(uint64_t* array1, uint64_t* array2, int array_size1, int array_size2, int* offset_vec, int offset_size);
-
-#endif

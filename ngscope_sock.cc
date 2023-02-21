@@ -19,11 +19,6 @@
 #include "ngscope_sync.h"
 
 extern bool go_exit;
-extern ue_dci_t    dci_vec[NOF_LOG_DCI];
-extern int         dci_header;
-extern int         nof_dci;
-extern pthread_mutex_t dci_mutex;
-
 int accept_slave_connect(int* server_fd, int* client_fd_vec, int portNum){
     int server_sockfd;//服务器端套接字
     int client_sockfd;//客户端套接字
@@ -99,81 +94,3 @@ int accept_slave_connect(int* server_fd, int* client_fd_vec, int portNum){
     return nof_sock;
 }
 
-int recv_one_dci(char* recvBuf, int buf_idx){
-    ue_dci_t    ue_dci;
-    // Time stamp
-    uint32_t lower_t = 0;
-    uint32_t upper_t = 0;
-    memcpy(&lower_t, &recvBuf[buf_idx], sizeof(uint32_t));
-    lower_t     = ntohl(lower_t);
-    buf_idx += 4;
-
-    memcpy(&upper_t, &recvBuf[buf_idx], sizeof(uint32_t));
-    upper_t     = ntohl(upper_t);
-    buf_idx += 4;
-    uint64_t time_stamp = (uint64_t)lower_t + ((uint64_t)upper_t << 32);
-
-    uint16_t tti = 0;
-    memcpy(&tti, &recvBuf[buf_idx], sizeof(uint16_t));
-    //tti     = ntohl(tti);
-
-    buf_idx += 2;
-
-    // Retransmissions
-    uint8_t reTx    = 0;
-    memcpy(&reTx, &recvBuf[buf_idx], sizeof(uint8_t));
-    buf_idx += 1;
-
-    // Transport block size
-    uint32_t    tbs = 0;
-    memcpy(&tbs, &recvBuf[buf_idx], sizeof(uint32_t));
-    tbs     = ntohl(tbs);
-    buf_idx += 4;
-    ue_dci.time_stamp = time_stamp;
-    ue_dci.tbs        = tbs;
-    ue_dci.reTx       = reTx;
-    ue_dci.tti        = tti;
-
-    pthread_mutex_lock(&dci_mutex);
-    memcpy(&dci_vec[dci_header], &ue_dci, sizeof(ue_dci_t));
-    dci_header++;
-    dci_header = dci_header % NOF_LOG_DCI;
-    if(nof_dci < NOF_LOG_DCI){
-        nof_dci++;
-    }
-    //printf("Data received! header:%d timestamp:%ld tti:%d reTx:%d tbs:%d nof_dci:%d\n", \
-                dci_header, time_stamp, tti, reTx, tbs, nof_dci);
-
-    //uint64_t delay = dci_vec[dci_header].time_stamp;
-    //for(int i=0; i<NOF_LOG_DCI;i++){
-    //    int idx = dci_header + i;
-    //    idx     = idx % NOF_LOG_DCI;
-    //    printf("%d %ld| ", dci_vec[idx].tti, dci_vec[idx].time_stamp - delay);
-    //}
-    //printf("\n");
-    pthread_mutex_unlock(&dci_mutex);
-
-    return buf_idx;
-}
-
-void* recv_ngscope_dci(void* p){
-    //ue_status_t* ue_status  = (ue_status_t*)p;
-    //int sock  = ue_status->remote_sock;
-    int sock  = *(int *)p;
-    int buf_size = 19;
-    char recvBuf[19];
-    ue_dci_t    ue_dci;
-    while(true){
-        if(go_exit) break;
-        int recvLen   = recv(sock, recvBuf, buf_size, 0);
-        int buf_idx   = 4;
-        if(recvLen > 0){
-            if( recvBuf[0] == (char)0xAA && recvBuf[1] == (char)0xAA && \
-                recvBuf[2] == (char)0xAA && recvBuf[3] == (char)0xAA ){
-                //printf("recvLen: %d\n", recvLen);
-                recv_one_dci(recvBuf, buf_idx);
-            }
-        }
-    }
-    pthread_exit(NULL);
-}

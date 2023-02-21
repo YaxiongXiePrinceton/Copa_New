@@ -1,0 +1,9 @@
+
+
+--> ngscope_dci
+We define the dci-containner here, which is a strcture that stores both uplink and downlink dci messages. The dci-container also stores the dci received from multiple cells. The corresponding library that handles such a structure is also implemented. The thread is also implemented.
+
+--> test_dci_recv 
+This function is to test the dci receiving tunnel between the ngscope and the function 
+
+

@@ -14,7 +14,7 @@
 
 #include "tcp-header.hh"
 #include "udp-socket.hh"
-#include "packet_list.h"
+#include "ngscope_packet_list.h"
 #include "ngscope_sync.h"
 #include "ngscope_sock.h"
 
@@ -23,9 +23,7 @@
 using namespace std;
 bool go_exit = false;
 
-ue_dci_t    dci_vec[NOF_LOG_DCI];
-int         dci_header  = 0;
-int         nof_dci     = 0;
+ngscope_dci_CA_t dci_ca;
 pthread_mutex_t dci_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
@@ -58,12 +56,12 @@ bool enqueue_pkt(packet_node* pkt_list, TCPHeader* header, int received, uint64_
 	packet_node* node; 
 	pkt_header_t pkt_header;
 
-	node                        = createNode();
+	node                        = ngscope_list_createNode();
 	pkt_header.sequence_number  = header->seq_num;
 	pkt_header.ack_number       = 0;
 	pkt_header.sent_timestamp   = header->tx_timestamp;
 	pkt_header.sender_id        = header->src_id;
-	pkt_header.recv_len         = received;
+	pkt_header.recv_len_byte    = received;
 	node->pkt_header 	    = pkt_header;	
 
 	memcpy(&node->tcp_header, header, sizeof(TCPHeader));
@@ -76,7 +74,7 @@ bool enqueue_pkt(packet_node* pkt_list, TCPHeader* header, int received, uint64_
 	node->oneway_us_new     = oneway_ns / 1000;  // ns -> us
 	node->revert_flag       = false;
 	node->acked       	= false;
-	insertNode_checkTime(pkt_list, node, fd_delay);
+	ngscope_list_insertNode_checkTime(pkt_list, node, fd_delay);
 	return true;
 }
 void send_pkt_w_time(UDPSocket &sender_socket, sockaddr_in* sender_addr, packet_node* head, uint64_t timestamp){
@@ -108,12 +106,12 @@ void echo_packets(UDPSocket &sender_socket) {
 	FILE *fd_ack, *fd_t_dif;
 
 	fd_ack = fopen("./data/client_ack_log","w+");
-        fclose(fd_ack);
-        fd_ack = fopen("./data/client_ack_log","a+");
+	fclose(fd_ack);
+	fd_ack = fopen("./data/client_ack_log","a+");
 
 	fd_t_dif = fopen("./data/sending_interval.txt","w+");
-        fclose(fd_t_dif);
-        fd_t_dif = fopen("./data/sending_interval.txt","a+");
+	fclose(fd_t_dif);
+	fd_t_dif = fopen("./data/sending_interval.txt","a+");
 
 
 	uint64_t dci_recv_t_us[NOF_LOG_DCI];
@@ -146,7 +144,8 @@ void echo_packets(UDPSocket &sender_socket) {
 	sender_socket.senddata(buff, sizeof(TCPHeader), &dest_addr);
 
 	uint64_t last_time = timestamp_ns();
-        uint64_t recv_time_ns;
+    uint64_t recv_time_ns;
+
 	while (1) {
 		if(go_exit) break;
 		int received __attribute((unused)) = -1;
@@ -166,11 +165,12 @@ void echo_packets(UDPSocket &sender_socket) {
 
 
 		uint64_t oneway_ns      =  recv_time_ns - header->tx_timestamp;
-		header->tx_timestamp 	= timestamp_ns();
-		sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
-		fprintf(fd_ack, "%ld\t%ld\t%d\t%ld\n", recv_time_ns, oneway_ns, header->seq_num, header->tx_timestamp);
+		uint64_t ack_t  		= timestamp_ns();
+		fprintf(fd_ack, "%ld\t%ld\t%d\t%ld\t%ld\n", recv_time_ns, oneway_ns, header->seq_num, header->tx_timestamp, ack_t);
 		fprintf(fd_t_dif, "%ld\n", header->tx_timestamp - last_time);
 		last_time = header->tx_timestamp;
+		header->tx_timestamp 	= ack_t;
+		sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
 	}
 	fclose(fd_ack);
 }

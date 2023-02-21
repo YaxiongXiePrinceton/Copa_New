@@ -17,7 +17,10 @@
 #include <stdio.h>
 
 
+#include "ngscope_packet_list.h"
 #include "ngscope_dci.h"
+
+class SaturateServo;
 
 typedef struct{
 	uint64_t start;
@@ -25,5 +28,10 @@ typedef struct{
 }time_seg_t;
 
 int ngscope_sync_dci_pkt(uint64_t* array1, uint64_t* array2, int array_size1, int array_size2, int* offset_vec, int offset_size);
+
+//int ngscope_sync_dci_pkt(ngscope_dci_t*     q[MAX_NOF_RF_DEV],
+//							packet_node* 	head,
+//							int 			nof_cell,
+//    __attribute__((unused))FILE* 			fd);
 
 #endif

@@ -254,6 +254,13 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
     }
 	int nof_pkt = 0;
     uint64_t t1 = timestamp_ns();
+
+    double wind_size = congctrl.get_the_window();
+    int nof_pkt_out = seq_num - _largest_ack + 1;
+
+    bool b1 = (seq_num < _largest_ack + 1 + congctrl.get_the_window());
+    bool b2 = (_last_send_time + congctrl.get_intersend_time() * train_length <= cur_time);
+    printf("Reason: %d %d wind_size:%f int_send_t:%f nof_pkt:%d\n", b1, b2, wind_size, congctrl.get_intersend_time(), nof_pkt_out);
     // Warning: The number of unacknowledged packets may exceed the congestion window by num_packets_per_link_rate_measurement
     while (((seq_num < _largest_ack + 1 + congctrl.get_the_window()) &&
             (_last_send_time + congctrl.get_intersend_time() * train_length <= cur_time) &&
@@ -287,7 +294,6 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
       seq_num++;
 	  nof_pkt++;
     }
-	printf("nof_pkt:%d\n", nof_pkt);
     uint64_t t2 = timestamp_ns();
     if (cur_time - _last_send_time >= congctrl.get_intersend_time() * train_length ||
         seq_num >= _largest_ack + congctrl.get_the_window()) {
@@ -361,8 +367,10 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
     }
 
     uint64_t t3 = timestamp_ns();
-    fprintf(fd_time,"%ld\t%ld\t%ld\t", t1, t2, t3);
-    fprintf(fd_time,"%f\t%d\n", timeout,nof_pkt);
+    if(nof_pkt > 0){
+	fprintf(fd_time,"%ld\t%ld\t%ld\t", t1, t2, t3);
+	fprintf(fd_time,"%f\t%d\n", timeout,nof_pkt);
+    }
 #ifdef SCALE_SEND_RECEIVE_EWMA
     //assert(false);
 #endif

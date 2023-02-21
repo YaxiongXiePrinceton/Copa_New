@@ -233,8 +233,11 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
   congctrl.init();
   system("mkdir ./data");
   FILE* fd_rtt = fopen("./data/rtt.txt","w+");
+  FILE* fd_time = fopen("./data/pkt_time.txt","w+");
   fclose(fd_rtt);
+  fclose(fd_time);
   fd_rtt = fopen("./data/rtt.txt","a+");
+  fd_rtt = fopen("./data/pkt_time.txt","a+");
 
   uint64_t recv_time_ns;
  
@@ -249,6 +252,8 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
       _last_send_time = cur_time;
       last_ack_time = cur_time; // So we don't timeout repeatedly
     }
+	int nof_pkt = 0;
+    uint64_t t1 = timestamp_ns();
     // Warning: The number of unacknowledged packets may exceed the congestion window by num_packets_per_link_rate_measurement
     while (((seq_num < _largest_ack + 1 + congctrl.get_the_window()) &&
             (_last_send_time + congctrl.get_intersend_time() * train_length <= cur_time) &&
@@ -280,7 +285,9 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
       }
 
       seq_num++;
+	  nof_pkt++;
     }
+    uint64_t t2 = timestamp_ns();
     if (cur_time - _last_send_time >= congctrl.get_intersend_time() * train_length ||
         seq_num >= _largest_ack + congctrl.get_the_window()) {
       // Hopeless. Stop trying to compensate.
@@ -351,6 +358,9 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
 		     ack_header.sender_timestamp,
 		     ack_header.adjust_us );
     }
+
+    uint64_t t3 = timestamp_ns();
+	fprintf(fd_time,"%ld\t%ld\t%ld\t%f\t%d\n", t1,t2,t3, timeout,nof_pkt);
 #ifdef SCALE_SEND_RECEIVE_EWMA
     //assert(false);
 #endif
@@ -375,6 +385,7 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
   std::cout<<"\n\tAvg. Throughput: "<<avg_throughput<<" bytes/sec\n\tAverage Delay: "<<avg_delay<<" sec/packet\n";
 
   fclose(fd_rtt);
+  fclose(fd_time);
 
   if( LINK_LOGGING )
     link_logfile.close();

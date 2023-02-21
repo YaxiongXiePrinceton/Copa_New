@@ -361,8 +361,8 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
     }
 
     uint64_t t3 = timestamp_ns();
-	fprintf(fd_time,"%ld\t%ld\t%ld\t" t1, t2, t3);
-	fprintf(fd_time,"%f\t%d\n" timeout,nof_pkt);
+	fprintf(fd_time,"%ld\t%ld\t%ld\t", t1, t2, t3);
+	fprintf(fd_time,"%f\t%d\n", timeout,nof_pkt);
 #ifdef SCALE_SEND_RECEIVE_EWMA
     //assert(false);
 #endif

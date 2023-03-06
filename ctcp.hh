@@ -264,10 +264,11 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
 		// transmit the packet 
 		//printf("Reason: %d %d wind_size:%f int_send_t:%f nof_pkt:%d\n", b1, b2, wind_size, congctrl.get_intersend_time(), nof_pkt_out);
 		// Warning: The number of unacknowledged packets may exceed the congestion window by num_packets_per_link_rate_measurement
-		while (((seq_num < _largest_ack + 1 + congctrl.get_the_window()) &&
+		while (((seq_num < _largest_ack + 1 + 5 * congctrl.get_the_window()) &&
 				(_last_send_time + congctrl.get_intersend_time() * train_length <= cur_time) &&
 				(byte_switched?(num_packets_transmitted*data_size):cur_time) < flow_size ) ||
 			   (seq_num % train_length != 0)) {
+
 		  header.seq_num = seq_num;
 		  header.flow_id = flow_id;
 		  header.src_id = src_id;
@@ -285,6 +286,8 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
 
 		  header.adjust_us = 0;
 		  memcpy( buf, &header, sizeof(TCPHeader) );
+		  printf("size of header:%ld\n", sizeof(TCPHeader));
+
 		  socket.senddata( buf, packet_size, NULL );
 		  _last_send_time += congctrl.get_intersend_time();
 
@@ -299,6 +302,26 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
 		if (cur_time - _last_send_time >= congctrl.get_intersend_time() * train_length ||
 			seq_num >= _largest_ack + congctrl.get_the_window()) {
 		  // Hopeless. Stop trying to compensate.
+
+		  header.seq_num = -1;
+		  header.flow_id = -1;
+		  header.src_id = src_id;
+		  header.sender_timestamp = cur_time;
+		  header.receiver_timestamp = 0;
+
+		  uint64_t timestamp = timestamp_ns();
+
+		//      uint32_t lower_t = htonl( (uint32_t)timestamp);
+		//      uint32_t upper_t = htonl( timestamp >> 32);
+		  //header.tx_timestamp = (uint64_t)lower_t + ((uint64_t)upper_t << 32);
+		  header.tx_timestamp = timestamp;
+
+
+		  header.adjust_us = 0;
+		  memcpy( buf, &header, sizeof(TCPHeader) );
+		  //printf("size of header:%ld\n", sizeof(TCPHeader));
+		  socket.senddata( buf, sizeof(TCPHeader), NULL );
+	
 		  _last_send_time = cur_time;
 		}
 

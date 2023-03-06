@@ -40,9 +40,9 @@ void MarkovianCC::init() {
   unacknowledged_packets.clear(); 
 
   //system("mkdir ./data");
-  fd_rtt = fopen("./data/rtt.txt","w+");
+  FILE* fd_rtt = fopen("./data/rtt.txt","w+");
   fclose(fd_rtt);
-  fd_rtt = fopen("./data/rtt.txt","w+");
+  //fd_rtt = fopen("./data/rtt.txt","w+");
 
   rtt_unacked.reset();
   rtt_window.clear();
@@ -201,7 +201,11 @@ void MarkovianCC::update_intersend_time() {
       _the_window -= update_amt / (delta * _the_window);
     }
   }
+
+  FILE* fd_rtt = fopen("./data/rtt.txt","a+");
   fprintf(fd_rtt, "%f\t%f\t%f\t%f\t%f\t%f\t%f\n", cur_time, _the_window, target_window, rtt, min_rtt, delta, update_amt);
+  fclose(fd_rtt);
+
   cout << "time= " << cur_time << " window= " << _the_window << " target= " << target_window << " rtt= " << rtt << " min_rtt= " << min_rtt << " delta= " << delta << " update_amt= " << update_amt << endl;
   // Set intersend time and perform boundary checks.
   _the_window = max(2.0, _the_window);
@@ -312,7 +316,7 @@ void MarkovianCC::onPktSent(int seq_num) {
 }
 
 void MarkovianCC::close() {
- 	fclose(fd_rtt);
+ 	//fclose(fd_rtt);
 }
 
 void MarkovianCC::onDupACK() {

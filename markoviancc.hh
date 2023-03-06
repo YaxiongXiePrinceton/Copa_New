@@ -65,7 +65,9 @@ class MarkovianCC : public CCC {
   double prev_rtt; // Measured RTT one-rtt ago.
   double prev_rtt_update_time;
   double prev_avg_sending_rate;
-  
+ 
+  FILE* fd_rtt;
+
 #ifdef SIMULATION_MODE
   RNG rand_gen;
 #else
@@ -138,6 +140,7 @@ public:
       prev_rtt(),
       prev_rtt_update_time(),
       prev_avg_sending_rate(),
+	  fd_rtt(),
       rand_gen(),
       num_pkts_lost(),
       num_pkts_acked(),

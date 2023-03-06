@@ -40,7 +40,7 @@ void MarkovianCC::init() {
   unacknowledged_packets.clear(); 
 
   //system("mkdir ./data");
-  FILE* fd_rtt = fopen("./data/rtt.txt","w+");
+  FILE* fd_rtt = fopen("./data/rtt_interval_update.txt","w+");
   fclose(fd_rtt);
   //fd_rtt = fopen("./data/rtt.txt","w+");
 
@@ -202,7 +202,7 @@ void MarkovianCC::update_intersend_time() {
     }
   }
 
-  FILE* fd_rtt = fopen("./data/rtt.txt","a+");
+  FILE* fd_rtt = fopen("./data/rtt_interval_update.txt","a+");
   fprintf(fd_rtt, "%f\t%f\t%f\t%f\t%f\t%f\t%f\n", cur_time, _the_window, target_window, rtt, min_rtt, delta, update_amt);
   fclose(fd_rtt);
 

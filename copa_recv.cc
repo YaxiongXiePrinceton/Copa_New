@@ -170,7 +170,10 @@ void echo_packets(UDPSocket &sender_socket) {
 		fprintf(fd_t_dif, "%ld\n", header->tx_timestamp - last_time);
 		last_time = header->tx_timestamp;
 		header->tx_timestamp 	= ack_t;
-		sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
+		if(header->seq_num == -1){
+		}else{
+			sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
+		}
 	}
 	fclose(fd_ack);
 }

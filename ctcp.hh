@@ -262,7 +262,7 @@ void CTCP<T>::send_data( double flow_size, bool byte_switched, int flow_id, int 
 
 
 		// transmit the packet 
-		printf("Reason: %d %d wind_size:%f int_send_t:%f nof_pkt:%d\n", b1, b2, wind_size, congctrl.get_intersend_time(), nof_pkt_out);
+		//printf("Reason: %d %d wind_size:%f int_send_t:%f nof_pkt:%d\n", b1, b2, wind_size, congctrl.get_intersend_time(), nof_pkt_out);
 		// Warning: The number of unacknowledged packets may exceed the congestion window by num_packets_per_link_rate_measurement
 		while (((seq_num < _largest_ack + 1 + congctrl.get_the_window()) &&
 				(_last_send_time + congctrl.get_intersend_time() * train_length <= cur_time) &&

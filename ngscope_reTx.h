@@ -41,8 +41,8 @@ typedef struct{
 	long 	 buf_size;
 	uint16_t buf_start_tti;
 	uint16_t buf_last_tti;
-	uint64_t buf_start_t;
-	uint64_t buf_last_t;
+	uint64_t buf_start_t;  //us 
+	uint64_t buf_last_t;   //us
 
 	
 	uint64_t ref_oneway;

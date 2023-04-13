@@ -20,6 +20,8 @@
 
 #define BUFFSIZE 15000
 #define DELAY_THD 2
+
+#define PKT_SIZE 1440
 using namespace std;
 bool go_exit = false;
 
@@ -146,53 +148,89 @@ void echo_packets(UDPSocket &sender_socket) {
 	uint64_t last_time = timestamp_ns();
     uint64_t recv_time_ns;
 	uint64_t last_ack_t = 0;
+
+	TCPHeader header_list[1000];
+	int nof_pkt = 0;
+	uint64_t curr_t, start_t;
+	start_t  = timestamp_ns();
 	while (1) {
 		if(go_exit) break;
 		int received __attribute((unused)) = -1;
-		while (received <= 0) {
+		while (true) {
 			if(go_exit) break;
 			//received = sender_socket.receivedata(buff, BUFFSIZE, -1, sender_addr);
 			received = sender_socket.receivedata_w_time(buff, BUFFSIZE, 0, &recv_time_ns, sender_addr);
-			
-			//if(received <= 0){
-			//	uint64_t curr_t  = timestamp_ns();
-			//	if(curr_t - last_ack_t > 1000000){
-			//		TCPHeader *header = (TCPHeader*)buff;
-			//		header->seq_num = -1111;
-			//		header->tx_timestamp 	= curr_t;
-			//		//printf("send some1!\n");
-			//		sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
-			//		last_ack_t 	= curr_t;
-			//		usleep(100);
+			if(received){
+				memcpy(&header_list[nof_pkt], buff, sizeof(TCPHeader));
+				nof_pkt++;
+			}
+			curr_t  = timestamp_ns();
+			if(curr_t - start_t > 1000000){
+				break;
+			}
+		}
+
+		if(nof_pkt == 0){
+			TCPHeader *header 		= (TCPHeader*)buff;
+			header->seq_num 		= -1111;
+			curr_t  				= timestamp_ns();
+			header->tx_timestamp 	= curr_t;
+			sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
+		}else{
+			int pkt_num = nof_pkt;
+			//int batch_size = PKT_SIZE / sizeof(TCPHeader);
+			//while(nof_pkt >= 0){
+			//	if(nof_pkt <= batch_size){
+			//		memcpy(buff, &header_list[nof_pkt], nof_pkt * sizeof(TCPHeader));
+			//		sender_socket.senddata(buff, nof_pkt * sizeof(TCPHeader), &sender_addr);
+			//		nof_pkt = 0;
 			//	}else{
-			//		//printf("time short!\n");
+			//		memcpy(buff, &header_list[nof_pkt], batch_size * sizeof(TCPHeader));
+			//		sender_socket.senddata(buff, batch_size * sizeof(TCPHeader), &sender_addr);
+			//		nof_pkt -= batch_size;
 			//	}
 			//}
-			assert( received != -1 );
+			uint64_t ack_t  		= timestamp_ns();
+			for(int i=0; i<pkt_num; i++){
+				memcpy(buff, &header_list[i], sizeof(TCPHeader));
+				TCPHeader *header = (TCPHeader*)buff;
+				header->receiver_timestamp = \
+					chrono::duration_cast<chrono::duration<double>>(
+						chrono::high_resolution_clock::now() - start_time_point
+					).count()*1000; //in milliseconds
+				header->tx_timestamp 	= ack_t;
+				if(header->seq_num == -1111){
+					printf("DUMMY packet!\n");
+				}else{
+					sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
+				}
+				nof_pkt--;
+			}
 		}
+		start_t  = timestamp_ns();
 
-		TCPHeader *header = (TCPHeader*)buff;
-		header->receiver_timestamp = \
-			chrono::duration_cast<chrono::duration<double>>(
-				chrono::high_resolution_clock::now() - start_time_point
-			).count()*1000; //in milliseconds
+		//TCPHeader *header = (TCPHeader*)buff;
+		//header->receiver_timestamp = 
+		//	chrono::duration_cast<chrono::duration<double>>(
+		//		chrono::high_resolution_clock::now() - start_time_point
+		//	).count()*1000; //in milliseconds
 
 
-		uint64_t oneway_ns      =  recv_time_ns - header->tx_timestamp;
-		uint64_t ack_t  		= timestamp_ns();
+		//uint64_t oneway_ns      =  recv_time_ns - header->tx_timestamp;
+		//uint64_t ack_t  		= timestamp_ns();
 
-		fprintf(fd_ack, "%ld\t%ld\t%d\t%ld\t%ld\n", recv_time_ns, oneway_ns, header->seq_num, header->tx_timestamp, ack_t);
-		fprintf(fd_t_dif, "%ld\n", header->tx_timestamp - last_time);
+		//fprintf(fd_ack, "%ld\t%ld\t%d\t%ld\t%ld\n", recv_time_ns, oneway_ns, header->seq_num, header->tx_timestamp, ack_t);
+		//fprintf(fd_t_dif, "%ld\n", header->tx_timestamp - last_time);
 
-		last_time = header->tx_timestamp;
-		header->tx_timestamp 	= ack_t;
+		//last_time = header->tx_timestamp;
+		//header->tx_timestamp 	= ack_t;
 
-		if(header->seq_num == -1111){
-			printf("DUMMY packet!\n");
-		}else{
-			sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
-			//last_ack_t 	= ack_t;
-		}
+		//if(header->seq_num == -1111){
+		//	printf("DUMMY packet!\n");
+		//}else{
+		//	sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
+		//	//last_ack_t 	= ack_t;
+		//}
 		//sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
 	}
 	fclose(fd_ack);

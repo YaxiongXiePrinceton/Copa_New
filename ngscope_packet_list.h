@@ -29,6 +29,7 @@ struct linkedList_t{
     bool            acked;
 
 	bool 			burst_start;
+
     struct linkedList_t* next;
     struct linkedList_t* prev;
 };

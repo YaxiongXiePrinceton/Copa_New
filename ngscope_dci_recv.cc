@@ -146,14 +146,14 @@ int recv_one_dci(char* recvBuf, int buf_idx, int recvLen){
 	ue_dci.dl_rv_flag = false;	
 	ue_dci.ul_rv_flag = false;	
 
-	if(ue_dci.ul_reTx){
-		printf("TTI:%d timestamp:%ld dl_tbs:%d dl_reTx:%d ul_tbs:%d ul_reTx:%d\n", ue_dci.tti, ue_dci.time_stamp, 
-				ue_dci.dl_tbs, ue_dci.dl_reTx, ue_dci.ul_tbs, ue_dci.ul_reTx);
+	//if(ue_dci.ul_reTx){
+	//	printf("TTI:%d timestamp:%ld dl_tbs:%d dl_reTx:%d ul_tbs:%d ul_reTx:%d\n", ue_dci.tti, ue_dci.time_stamp, 
+	//			ue_dci.dl_tbs, ue_dci.dl_reTx, ue_dci.ul_tbs, ue_dci.ul_reTx);
 
-	}
+	//}
 
-	printf("TTI:%d timestamp:%ld dl_tbs:%d dl_reTx:%d ul_tbs:%d ul_reTx:%d\n", ue_dci.tti, ue_dci.time_stamp, 
-				ue_dci.dl_tbs, ue_dci.dl_reTx, ue_dci.ul_tbs, ue_dci.ul_reTx);
+	//printf("TTI:%d timestamp:%ld dl_tbs:%d dl_reTx:%d ul_tbs:%d ul_reTx:%d\n", ue_dci.tti, ue_dci.time_stamp, 
+	//			ue_dci.dl_tbs, ue_dci.dl_reTx, ue_dci.ul_tbs, ue_dci.ul_reTx);
 	pthread_mutex_lock(&dci_mutex);
 	ngscope_dci_CA_insert(&dci_ca, &ue_dci, cell_idx);
 //	printf("tti:%d  timestamp:%ld cell_idx:%d header:%d len:%d\n", ue_dci.tti, ue_dci.time_stamp, cell_idx,
@@ -222,7 +222,7 @@ void* ngscope_dci_recv_thread(void* p){
     	int buf_idx = 0;
         int recvLen = recv(sock, recvBuf, buf_size, 0);
         if(recvLen > 0){
-			while(true){
+			while(!go_exit){
 				int ret = recv_buffer(recvBuf, buf_idx, recvLen);
 				if(ret < 0){
 					// ignore the buffer

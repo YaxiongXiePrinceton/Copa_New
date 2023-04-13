@@ -29,6 +29,7 @@ bool go_exit = false;
 
 ngscope_dci_CA_t dci_ca;
 pthread_mutex_t dci_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t socket_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 ngscope_reordering_buf_t reTx_buffer;
 int dci_pkt_offset =0;
@@ -258,8 +259,6 @@ void echo_packets(UDPSocket &sender_socket) {
 
 		//printf("dci:%ld recv:%ld diff:%ld ms\n", dci_curr_time_us, recv_time_ns/1000, abs((long)(dci_curr_time_us - recv_time_ns/1000) /1000));
 
-		int nof_pkt = ngscope_list_length(pkt_list); 
-
 		uint64_t* pkt_reTx_rx_t_us;  // time of reTx before pruning of intersections
 		uint64_t* pkt_rx_t_us; 
 		uint64_t* pkt_oneway_us; 
@@ -270,6 +269,9 @@ void echo_packets(UDPSocket &sender_socket) {
 		// get the retransmission from the received packets
 		int nof_reTx_pkt = 0;  
 		int nof_reTx_dci = 0;  
+
+
+		int nof_pkt = ngscope_list_length(pkt_list); 
 		//Extract the pkt recv time and the pkt recv time of the retransmission
 		pkt_rx_t_us 		= (uint64_t *)malloc(nof_pkt * sizeof(uint64_t));
 		pkt_oneway_us 		= (uint64_t *)malloc(nof_pkt * sizeof(uint64_t));

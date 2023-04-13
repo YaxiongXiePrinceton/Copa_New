@@ -202,15 +202,21 @@ void MarkovianCC::update_intersend_time() {
     }
   }
 
-  FILE* fd_rtt = fopen("./data/rtt_interval_update.txt","a+");
-  fprintf(fd_rtt, "%f\t%f\t%f\t%f\t%f\t%f\t%f\n", cur_time, _the_window, target_window, rtt, min_rtt, delta, update_amt);
-  fclose(fd_rtt);
-
   cout << "time= " << cur_time << " window= " << _the_window << " target= " << target_window << " rtt= " << rtt << " min_rtt= " << min_rtt << " delta= " << delta << " update_amt= " << update_amt << endl;
   // Set intersend time and perform boundary checks.
   _the_window = max(2.0, _the_window);
   cur_intersend_time = 0.5 * rtt / _the_window;
   _intersend_time = randomize_intersend(cur_intersend_time);
+
+  FILE* fd_rtt = fopen("./data/rtt_interval_update.txt","a+");
+  //fprintf(fd_rtt, "%f\t%f\t%f\t%f\t%f\t%f\t%f\n", cur_time, _the_window, target_window, rtt, min_rtt, delta, update_amt);
+  if (queuing_delay == 0)
+    fprintf(fd_rtt, "%f\t%f\t%d\t%f\t%f\t%f\t%f\t%f\n", cur_time, _the_window, 0, rtt, min_rtt, delta, update_amt, _intersend_time);
+  else
+    fprintf(fd_rtt, "%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n", cur_time, _the_window, target_window, rtt, min_rtt, delta, update_amt, _intersend_time);
+    //fprintf(fd_rtt, "%f\t%f\t%f\t%f\t%f\t%f\n", cur_time, _the_window,  rtt, min_rtt, delta, update_amt);
+  fclose(fd_rtt);
+
 }
 
 void MarkovianCC::onACK(int ack, 

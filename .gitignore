@@ -59,3 +59,5 @@ sender
 receiver
 prober
 test_dci_recv
+copa_rx_fix
+dci_copa_rx

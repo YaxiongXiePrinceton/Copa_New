@@ -17,6 +17,10 @@
 
 #include "ngscope_reTx.h"
 #include "ngscope_util.h"
+#include "ngscope_debug_def.h"
+
+extern client_fd_t client_fd;
+
 int ngscope_reTx_init_buf(ngscope_reordering_buf_t* q){
 	q->ready 			= false;
 
@@ -36,6 +40,11 @@ int ngscope_reTx_init_buf(ngscope_reordering_buf_t* q){
 }
 
 int ngscope_reTx_reset_buf(ngscope_reordering_buf_t* q){
+	
+	if(CLIENT_RETX){
+		fprintf(client_fd.fd_client_reTx, "%ld\t%ld\t%ld\t\n", q->buf_start_t, q->buf_last_t, q->start_pkt_t);
+	}
+
 	q->buffer_active  	= false;
 	q->buf_size 		= 0;
 
@@ -45,15 +54,28 @@ int ngscope_reTx_reset_buf(ngscope_reordering_buf_t* q){
 	//q->buf_start_t 		= 0;
 	//q->buf_last_t 		= 0;
 
-	q->start_pkt_t 		= 0;
+	//q->start_pkt_t 		= 0;  // save it for later
 	q->start_pkt_found 	= false;
-
 	q->most_recent_dci_t= 0;
 
-	q->ref_oneway 		= 0;
+	//q->ref_oneway 		= 0; // save it for later
 
 	return 1;
 }
+
+int ngscope_reTx_activate_buf(ngscope_reordering_buf_t* q){
+	
+	q->buffer_active  	= true;
+	q->buf_size 		= 0;
+
+	//q->start_pkt_t 		= 0;  // save it for later
+	q->start_pkt_found 	= true;
+
+	//q->ref_oneway 		= 0; // save it for later
+
+	return 1;
+}
+
 
 uint16_t tti_to_idx(uint16_t tti, uint16_t tail_tti){
 	return (tti - tail_tti + MAX_TTI) % MAX_TTI;
@@ -237,7 +259,7 @@ void set_reTx_tti_inBurst(ngscope_reordering_buf_t* q,
 	return;
 }
 				
-void update_reTx_buf(ngscope_reordering_buf_t* q,
+bool update_reTx_buf(ngscope_reordering_buf_t* q,
 				ngscope_reTx_ca_t* ca_trace){
 	bool found_reTx = false;
 	for(int i=0; i<ca_trace->size; i++){
@@ -260,6 +282,8 @@ void update_reTx_buf(ngscope_reordering_buf_t* q,
 					set_reTx_start_tti(q, ca_trace, i);
 				}else{
 					printf("Warning: burst inactive but TTI detected to be in burst. Maybe the packet drains too quickly.\n");
+					ngscope_reTx_activate_buf(q);
+					set_reTx_tti_inBurst(q, ca_trace, i);
 				}
 			}
 		}
@@ -271,7 +295,8 @@ void update_reTx_buf(ngscope_reordering_buf_t* q,
 			}
 		}
 	}
-	printf("found_reTx:%d ?\n", found_reTx);
+	printf("UPDATE reTx Buf: do we found_reTx:%d ?\n", found_reTx);
+	return found_reTx;
 }
 
 int ngscope_reTx_update_buf(ngscope_reordering_buf_t* q,
@@ -289,10 +314,10 @@ int ngscope_reTx_update_buf(ngscope_reordering_buf_t* q,
 	//printf("\n");
 
 	// update the retransmission buffer
-	update_reTx_buf(q, &trace);
+	bool found_reTx = update_reTx_buf(q, &trace);
 
 	
-	return 1;
+	return found_reTx;
 }
 
 
@@ -386,7 +411,7 @@ int ngscope_reTx_find_burst_start(uint64_t* pkt_t_us, uint64_t* oneway, int pkt_
 		}
 	}
 	long time_diff = abs((long)(dci_reTx_t_us - pkt_t_us[pkt_num-1]));
-	printf("time diff :%ld\n", time_diff);
+	//printf("time diff :%ld\n", time_diff);
 
 	// now we cannot find any matching pkt
 	// if there is one pkt that's close enough, we also count

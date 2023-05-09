@@ -19,5 +19,6 @@
 #include "ngscope_dci.h"
 
 void* ngscope_dci_recv_thread(void* p);
+void* ngscope_dci_recv_udp_thread(void* p);
 
 #endif

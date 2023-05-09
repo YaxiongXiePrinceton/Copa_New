@@ -17,6 +17,9 @@
 #include "ngscope_packet_list.h"
 #include "ngscope_sync.h"
 #include "ngscope_sock.h"
+#include "ngscope_debug_def.h"
+
+#include "ngscope_ts.h"
 
 #define BUFFSIZE 15000
 #define DELAY_THD 2
@@ -25,24 +28,15 @@
 using namespace std;
 bool go_exit = false;
 
+client_fd_t client_fd;
 ngscope_dci_CA_t dci_ca;
 pthread_mutex_t dci_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+bool sock_ready = false;
 
 // used to lock socket used to listen for packets from the sender
 mutex socket_lock; 
-uint64_t timestamp_ns()
-{
-  struct timespec ts;
 
-  if ( clock_gettime( CLOCK_REALTIME, &ts ) < 0 ) {
-    perror( "clock_gettime" );
-    exit( 1 );
-  }
-
-  uint64_t ret = ts.tv_sec * 1000000000 + ts.tv_nsec;
-  return ret;
-}
 
 void sig_int_handler(int signo)
 {
@@ -54,7 +48,7 @@ void sig_int_handler(int signo)
   }
 }
 
-bool enqueue_pkt(packet_node* pkt_list, TCPHeader* header, int received, uint64_t recv_time_ns, FILE* fd_delay){
+bool enqueue_pkt(packet_node* pkt_list, TCPHeader* header, int received, uint64_t recv_time_ns){
 	packet_node* node; 
 	pkt_header_t pkt_header;
 
@@ -76,7 +70,7 @@ bool enqueue_pkt(packet_node* pkt_list, TCPHeader* header, int received, uint64_
 	node->oneway_us_new     = oneway_ns / 1000;  // ns -> us
 	node->revert_flag       = false;
 	node->acked       	= false;
-	ngscope_list_insertNode_checkTime(pkt_list, node, fd_delay);
+	ngscope_list_insertNode_checkTime(pkt_list, node);
 	return true;
 }
 void send_pkt_w_time(UDPSocket &sender_socket, sockaddr_in* sender_addr, packet_node* head, uint64_t timestamp){
@@ -114,6 +108,10 @@ void echo_packets(UDPSocket &sender_socket) {
 	fd_t_dif = fopen("./data/sending_interval.txt","w+");
 	fclose(fd_t_dif);
 	fd_t_dif = fopen("./data/sending_interval.txt","a+");
+
+	// init the file descriptor
+	ngscope_debug_client_fd_init(&client_fd);
+
 
 
 	uint64_t dci_recv_t_us[NOF_LOG_DCI];
@@ -233,6 +231,7 @@ void echo_packets(UDPSocket &sender_socket) {
 		//}
 		//sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
 	}
+	ngscope_debug_client_fd_close(&client_fd);
 	fclose(fd_ack);
 }
 

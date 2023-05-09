@@ -19,6 +19,7 @@
 #include "ngscope_sync.h"
 
 extern bool go_exit;
+
 int accept_slave_connect(int* server_fd, int* client_fd_vec, int portNum){
     int server_sockfd;//服务器端套接字
     int client_sockfd;//客户端套接字
@@ -93,4 +94,5 @@ int accept_slave_connect(int* server_fd, int* client_fd_vec, int portNum){
     //}
     return nof_sock;
 }
+
 

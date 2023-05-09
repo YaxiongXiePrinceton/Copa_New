@@ -45,7 +45,7 @@ packet_node* ngscope_list_deleteNode(packet_node* head, packet_node* node, packe
 void ngscope_list_checkTimeDelay_woTime(packet_node* head);
 void ngscope_list_checkTimeDelay_wTime(packet_node* head, uint64_t curr_t_us);
 void ngscope_list_insertNode(packet_node* head, packet_node* node);
-void ngscope_list_insertNode_checkTime(packet_node* head, packet_node* node, FILE* fd);
+void ngscope_list_insertNode_checkTime(packet_node* head, packet_node* node);
 void ngscope_list_revert_delay(packet_node* head, ngscope_reordering_buf_t* q);
 
 uint64_t ngscope_list_ave_oneway(uint64_t* oneway, int nof_pkt, int index, int len);

@@ -13,7 +13,7 @@ OBJECTS  := random.o memory.o memoryrange.o rat.o whisker.o whiskertree.o udp-so
 
 #protobufs-default/dna.pb.o  
 
-all: sender  test_dci_recv receiver copa_rx copa_rx_fix dci_copa_rx
+all: sender  receiver copa_rx copa_rx_fix dci_copa_rx test_dci_recv
 #all: sender receiver 
 #all: sender receiver copa_rx
 
@@ -42,21 +42,21 @@ prober: prober.o udp-socket.o
 #ngscope_lib/ngscope_reTx.o: ngscope_lib/ngscope_reTx.cc
 #ngscope_lib/.o: ngscope_lib/.cc
 
-test_dci_recv: test_dci_recv.o  ngscope_sock.o  ngscope_dci.o ngscope_dci_recv.o ngscope_util.o ngscope_reTx.o 
+test_dci_recv: test_dci_recv.o  ngscope_sock.o  ngscope_dci.o ngscope_dci_recv.o ngscope_util.o  ngscope_debug_def.o ngscope_ts.o
 	$(CXX) $(inputs) -Wno-unused-variable  -Wno-unused-parameter -o $(output) $(LIBS) 
 
 
-receiver: receiver.o udp-socket.o ngscope_packet_list.o ngscope_sync.o  socket.o ngscope_sock.o ngscope_dci_recv.o ngscope_dci.o ngscope_util.o ngscope_reTx.o
+receiver: receiver.o udp-socket.o ngscope_packet_list.o ngscope_sync.o  socket.o ngscope_sock.o ngscope_dci_recv.o ngscope_dci.o ngscope_util.o ngscope_reTx.o ngscope_debug_def.o ngscope_ts.o
 	$(CXX) $(inputs) -Wno-unused-variable  -Wno-unused-parameter -o $(output) $(LIBS) 
 
-dci_copa_rx: dci_copa_rx.o udp-socket.o ngscope_packet_list.o ngscope_sync.o  socket.o ngscope_sock.o ngscope_dci_recv.o ngscope_dci.o ngscope_util.o ngscope_reTx.o
+dci_copa_rx: dci_copa_rx.o udp-socket.o ngscope_packet_list.o ngscope_sync.o  socket.o ngscope_sock.o ngscope_dci_recv.o ngscope_dci.o ngscope_util.o ngscope_reTx.o ngscope_debug_def.o ngscope_client.o ngscope_ts.o
 	$(CXX) $(inputs) -Wno-unused-variable  -Wno-unused-parameter -o $(output) $(LIBS) 
 
 
-copa_rx: copa_recv.o udp-socket.o ngscope_packet_list.o ngscope_sync.o socket.o ngscope_sock.o ngscope_dci_recv.o ngscope_dci.o ngscope_util.o ngscope_reTx.o
+copa_rx: copa_recv.o udp-socket.o ngscope_packet_list.o ngscope_sync.o socket.o ngscope_sock.o ngscope_dci_recv.o ngscope_dci.o ngscope_util.o ngscope_reTx.o ngscope_debug_def.o ngscope_ts.o
 	$(CXX) $(inputs) -Wno-unused-variable  -Wno-unused-parameter -o $(output) $(LIBS) 
 
-copa_rx_fix: copa_rx_fix.o udp-socket.o ngscope_packet_list.o ngscope_sync.o socket.o ngscope_sock.o ngscope_dci_recv.o ngscope_dci.o ngscope_util.o ngscope_reTx.o
+copa_rx_fix: copa_rx_fix.o udp-socket.o ngscope_packet_list.o ngscope_sync.o socket.o ngscope_sock.o ngscope_dci_recv.o ngscope_dci.o ngscope_util.o ngscope_reTx.o ngscope_debug_def.o ngscope_ts.o
 	$(CXX) $(inputs) -Wno-unused-variable  -Wno-unused-parameter -o $(output) $(LIBS) 
 
 

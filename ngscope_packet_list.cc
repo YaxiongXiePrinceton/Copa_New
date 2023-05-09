@@ -19,6 +19,9 @@
 //#include "acker.hh"
 #include "ngscope_sync.h"
 #include "ngscope_reTx.h"
+#include "ngscope_debug_def.h"
+
+extern client_fd_t client_fd;
 
 packet_node* ngscope_list_createNode(){
     packet_node* temp;
@@ -72,15 +75,17 @@ packet_node* findLastNode(packet_node* head){
     return p; 
 }
 
-void delete_1st_element(packet_node* head, FILE* fd){
+void delete_1st_element(packet_node* head){
     packet_node* p = head->next->next;
 
     if(head->next == NULL){
         return;
     }
 
-    fprintf(fd, "%ld\t%ld\t%ld\t%d\t%d\n", head->next->recv_t_us, head->next->oneway_us, \
-		head->next->oneway_us_new, head->next->pkt_header.sequence_number, head->next->burst_start);
+	if(CLIENT_DELAY){
+		fprintf(client_fd.fd_client_delay, "%ld\t%ld\t%ld\t%d\t%d\n", head->next->recv_t_us, head->next->oneway_us, \
+			head->next->oneway_us_new, head->next->pkt_header.sequence_number, head->next->burst_start);
+	}
 
     free(head->next);
 
@@ -111,14 +116,14 @@ void ngscope_list_checkTimeDelay_woTime(packet_node* head){
     //printf("delay_thd_us:%d \n", delay_thd_us);
     while((head->next != NULL) || (curr_t_us - head->recv_t_us > delay_thd_us) ){
         // delay larger than the threshold, then delete the header 
-        delete_1st_element(head, NULL);
+        delete_1st_element(head);
     } 
 
     return;
 }
 // Re-implement the above function but with current timestamp as input
 // Make sure that the packets in the list are within a window 
-void ngscope_list_checkTimeDelay_wTime(packet_node* head, uint64_t curr_t_us, FILE* fd){
+void ngscope_list_checkTimeDelay_wTime(packet_node* head, uint64_t curr_t_us){
     uint64_t delay_thd_us   = NOF_LOG_DCI * 1000;
     packet_node* p;
     if(head == NULL){
@@ -131,7 +136,7 @@ void ngscope_list_checkTimeDelay_wTime(packet_node* head, uint64_t curr_t_us, FI
     while((head->next != NULL) && (p->next != NULL) && \
                 (curr_t_us - p->recv_t_us > delay_thd_us) ){
         // delay larger than the threshold, then delete the header 
-        delete_1st_element(head, fd);
+        delete_1st_element(head);
         p = head->next;
     } 
     return;
@@ -169,7 +174,7 @@ int ngscope_list_length(packet_node* head){
     return len;
 }
 
-void ngscope_list_insertNode_checkTime(packet_node* head, packet_node* node, FILE* fd){
+void ngscope_list_insertNode_checkTime(packet_node* head, packet_node* node){
     packet_node* p;
     uint64_t curr_t_us;
     // node cannot be empty
@@ -199,7 +204,7 @@ void ngscope_list_insertNode_checkTime(packet_node* head, packet_node* node, FIL
     p->next = node;
     node->prev = p;
     // Since the tree is not empty, lets check the time delay 
-    ngscope_list_checkTimeDelay_wTime(head, curr_t_us, fd);
+    ngscope_list_checkTimeDelay_wTime(head, curr_t_us);
     return;
 }
 
@@ -217,7 +222,7 @@ void ngscope_list_revert_delay(packet_node* head, ngscope_reordering_buf_t* q){
 
 			//q->ref_oneway 	 	= p->oneway_us_new;
 			q->buf_size 		-= p->pkt_header.recv_len_byte * 8;
-			printf("found the first pkt: ref_oneway:%ld buf_size:%ld delete size:%d\n", q->ref_oneway, q->buf_size, p->pkt_header.recv_len_byte * 8);
+			//printf("found the first pkt: ref_oneway:%ld buf_size:%ld delete size:%d\n", q->ref_oneway, q->buf_size, p->pkt_header.recv_len_byte * 8);
 		}
 
 		// pkt later than the burst start pkt
@@ -225,11 +230,11 @@ void ngscope_list_revert_delay(packet_node* head, ngscope_reordering_buf_t* q){
 			p->oneway_us_new 	= q->ref_oneway;
 			p->revert_flag 		= true;
 			q->buf_size 		-= p->pkt_header.recv_len_byte * 8;
-			printf("Handling following pkts: ref_oneway:%ld buf_size:%ld delete size:%d\n", q->ref_oneway, q->buf_size, p->pkt_header.recv_len_byte * 8);
+			//printf("Handling following pkts: ref_oneway:%ld buf_size:%ld delete size:%d\n", q->ref_oneway, q->buf_size, p->pkt_header.recv_len_byte * 8);
 		}
 
 		if(q->buf_size <= 0){
-			printf("reset the packet!\n");
+			printf("reset the reTx buffer!\n");
 			ngscope_reTx_reset_buf(q);
 			break;
 		}

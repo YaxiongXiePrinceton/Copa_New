@@ -15,6 +15,9 @@
 #include "ngscope_dci.h"
 #include "ngscope_util.h"
 
+#include "ngscope_debug_def.h"
+extern client_fd_t client_fd;
+
 //using namespace std;
 extern bool go_exit;
 extern ngscope_dci_CA_t dci_ca;
@@ -26,6 +29,9 @@ void ngscope_dci_cell_init(ngscope_dci_cell_t* q){
 	q->nof_logged_dci 		= 0;
 	q->recent_dl_reTx_t_us 	= 0;
 	q->recent_ul_reTx_t_us 	= 0;
+	q->recent_dl_reTx_tti 	= 0;
+	q->recent_ul_reTx_tti 	= 0;
+	
 	for(int i=0; i<NOF_LOG_DCI; i++){
 		memset(&q->dci[i], 0, sizeof(ue_dci_t));
 	}
@@ -158,10 +164,12 @@ void ngscope_dci_CA_insert(ngscope_dci_CA_t* q, ue_dci_t* ue_dci, uint8_t cell_i
 	// check if current dci indicates retransmission
 	if(ue_dci->dl_reTx == 1){
 		dci_cell->recent_dl_reTx_t_us = ue_dci->time_stamp;
+		dci_cell->recent_dl_reTx_tti  = ue_dci->tti;
 	}
 
 	if(ue_dci->ul_reTx == 1){
 		dci_cell->recent_ul_reTx_t_us = ue_dci->time_stamp;
+		dci_cell->recent_ul_reTx_tti  = ue_dci->tti;
 	}
 
 	ca_update_header(q);
@@ -182,6 +190,9 @@ bool ngscope_dci_new_dl_reTx(ngscope_dci_CA_t* q, uint64_t dl_reTx_us[MAX_NOF_RF
 			}
 		}else{
 			if(dl_reTx_us[i] != q->cell_dci[i].recent_dl_reTx_t_us){
+				if(CLIENT_DL_reTx){
+					fprintf(client_fd.fd_client_DL_reTx, "%d\t%ld\t\n", i, q->cell_dci[i].recent_dl_reTx_t_us);
+				}
 				return true;
 			}
 		}
@@ -202,6 +213,9 @@ bool ngscope_dci_new_ul_reTx(ngscope_dci_CA_t* q, uint64_t ul_reTx_us[MAX_NOF_RF
 			}
 		}else{
 			if(ul_reTx_us[i] != q->cell_dci[i].recent_ul_reTx_t_us){
+				if(CLIENT_UL_reTx){
+					fprintf(client_fd.fd_client_UL_reTx, "%d\t%ld\t\n", i, q->cell_dci[i].recent_ul_reTx_t_us);
+				}
 				return true;
 			}
 		}

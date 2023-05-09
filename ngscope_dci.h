@@ -88,6 +88,9 @@ typedef struct{
 	uint64_t	recent_dl_reTx_t_us;	
 	uint64_t	recent_ul_reTx_t_us;	
 
+	uint16_t 	recent_dl_reTx_tti;
+	uint16_t 	recent_ul_reTx_tti;
+
 	// the dci 
 	ue_dci_t 	dci[NOF_LOG_DCI];	
 }ngscope_dci_cell_t;

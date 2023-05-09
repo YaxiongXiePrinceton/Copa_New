@@ -15,12 +15,17 @@
 #include "ngscope_dci.h"
 #include "ngscope_dci_recv.h"
 #include "ngscope_util.h"
+#include "ngscope_debug_def.h"
+extern client_fd_t client_fd;
 
 //using namespace std;
 extern bool go_exit;
-
 extern ngscope_dci_CA_t dci_ca;
 extern pthread_mutex_t dci_mutex;
+extern bool sock_ready;
+
+int nof_dl_reTx_per_cell[4] = {0};
+int nof_ul_reTx_per_cell[4] = {0};
 
 int recv_dci_ver1(ue_dci_t* ue_dci, char* recvBuf, int buf_idx, int recvLen){
 	uint8_t ul_dl;
@@ -146,6 +151,20 @@ int recv_one_dci(char* recvBuf, int buf_idx, int recvLen){
 	ue_dci.dl_rv_flag = false;	
 	ue_dci.ul_rv_flag = false;	
 
+	if(ue_dci.dl_reTx){
+		//printf("CELL:%d TTI:%d timestamp:%ld dl_tbs:%d dl_reTx:%d ul_tbs:%d ul_reTx:%d\n", cell_idx, ue_dci.tti, ue_dci.time_stamp, 
+	//			ue_dci.dl_tbs, ue_dci.dl_reTx, ue_dci.ul_tbs, ue_dci.ul_reTx);
+		if(CLIENT_DCI_RX_DL_RETX){
+			fprintf(client_fd.fd_client_DCI_RX_DL_RETX, "%d\t%ld\t\n", cell_idx, ue_dci.time_stamp);
+		}
+		nof_dl_reTx_per_cell[cell_idx]++;
+	}
+	if(ue_dci.ul_reTx){
+		nof_ul_reTx_per_cell[cell_idx]++;
+		if(CLIENT_DCI_RX_UL_RETX){
+			fprintf(client_fd.fd_client_DCI_RX_UL_RETX, "%d\t%ld\t\n", cell_idx, ue_dci.time_stamp);
+		}
+	}
 	//if(ue_dci.ul_reTx){
 	//	printf("TTI:%d timestamp:%ld dl_tbs:%d dl_reTx:%d ul_tbs:%d ul_reTx:%d\n", ue_dci.tti, ue_dci.time_stamp, 
 	//			ue_dci.dl_tbs, ue_dci.dl_reTx, ue_dci.ul_tbs, ue_dci.ul_reTx);
@@ -186,6 +205,11 @@ int recv_buffer(char* recvBuf, int idx, int recvLen){
 		printf("Configuration received!\n");
 		buf_idx	+= 4;
 		buf_idx = recv_config(recvBuf, buf_idx);
+	}else if( recvBuf[buf_idx] == (char)0xFF && recvBuf[buf_idx+1] == (char)0xFF && \
+		recvBuf[buf_idx+2] == (char)0xFF && recvBuf[buf_idx+3] == (char)0xFF ){
+		printf("EXIT!\n");
+		go_exit = true;
+		return -1;
 	}else{
 		printf("ERROR: Unknown preamble!\n");
 		return -1;
@@ -235,9 +259,103 @@ void* ngscope_dci_recv_thread(void* p){
 				}
 			}
 			//offset = shift_recv_buffer(recvBuf, buf_idx, recvLen);
+			printf("recvLen: %d buf_idx: %d \n\n", recvLen, buf_idx);
+        }
+    }
+	for(int i=0; i<4; i++){
+		printf("cell:%d DL-reTx:%d UL-reTx:%d \n", i, nof_dl_reTx_per_cell[i], nof_ul_reTx_per_cell[i]);
+	}
+    pthread_exit(NULL);
+}
+
+void* ngscope_dci_recv_udp_thread(void* p){
+    //ue_status_t* ue_status  = (ue_status_t*)p;
+    //int sock  = ue_status->remote_sock;
+    int sockfd;
+    char recvBuf[1400];
+	struct sockaddr_in servaddr, cliaddr;
+	int PORT = 6767;
+
+	ngscope_dci_CA_init(&dci_ca);
+
+	// Create UDP socket
+    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sockfd < 0) {
+        perror("socket creation failed");
+        exit(EXIT_FAILURE);
+    }
+	
+	// Set server address
+    memset(&servaddr, 0, sizeof(servaddr));
+    servaddr.sin_family = AF_INET;
+    servaddr.sin_addr.s_addr = INADDR_ANY;
+    servaddr.sin_port = htons(PORT);
+    
+    // Bind socket to server address
+    if (bind(sockfd, (const struct sockaddr *)&servaddr, sizeof(servaddr)) < 0) {
+        perror("bind failed");
+        exit(EXIT_FAILURE);
+    }
+
+	// Receive message from client
+    unsigned int len = 0;
+	int n;
+    len = sizeof(cliaddr);
+	// we try to build the connection first: wati for the client to send the connection request to us
+	int nof_cli_req = 0;
+	while(!go_exit){
+		n = recvfrom(sockfd, (char *)recvBuf, 1400, MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
+		if(n > 0){
+			printf("recv len:%d \n", n);
+			if( recvBuf[0] == (char)0xCC && recvBuf[1] == (char)0xCC && \
+				recvBuf[2] == (char)0xCC && recvBuf[3] == (char)0xCC ){
+				nof_cli_req++;
+			}
+		}
+		if(nof_cli_req >= 2){
+			break;
+		}
+	}
+
+	// tell the client that we recevied their request
+	recvBuf[0] = (char)0xAA;recvBuf[1] = (char)0xAA;
+	recvBuf[2] = (char)0xAA;recvBuf[3] = (char)0xAA;
+
+	printf("CONNECTION BUILD!\n");
+	sendto(sockfd, (char *)recvBuf, 4, MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
+	sendto(sockfd, (char *)recvBuf, 4, MSG_CONFIRM, (const struct sockaddr *) &cliaddr, len);
+
+	// notify others that socket is ready
+	sock_ready = true;
+
+    while(!go_exit){
+    	int buf_idx = 0;
+        int recvLen = 0;
+
+		recvLen = recvfrom(sockfd, (char *)recvBuf, 1400, MSG_WAITALL, (struct sockaddr*) &cliaddr, &len);
+        if(recvLen > 0){
+			while(!go_exit){
+				int ret = recv_buffer(recvBuf, buf_idx, recvLen);
+				if(ret < 0){
+					// ignore the buffer
+					printf("recvLen: %d buf_idx: %d \n\n", recvLen, buf_idx);
+					buf_idx = recvLen; 
+					break;
+				}else if(ret == recvLen){
+					break;
+				}else{
+					buf_idx = ret;
+				}
+			}
+			//offset = shift_recv_buffer(recvBuf, buf_idx, recvLen);
 			//printf("recvLen: %d buf_idx: %d \n\n", recvLen, buf_idx);
         }
     }
+	for(int i=0; i<4; i++){
+		printf("cell:%d DL-reTx:%d UL-reTx:%d \n", i, nof_dl_reTx_per_cell[i], nof_ul_reTx_per_cell[i]);
+	}
+
+	close(sockfd);
     pthread_exit(NULL);
 }
 

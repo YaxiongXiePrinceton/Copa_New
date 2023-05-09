@@ -21,12 +21,19 @@
 #include "ngscope_dci.h"
 #include "ngscope_dci_recv.h"
 
+#include "ngscope_ts.h"
+#include "ngscope_debug_def.h"
+
+client_fd_t client_fd;
+
+
 #define BUFFSIZE 15000
 #define DELAY_THD 2
 
 using namespace std;
 bool go_exit = false;
 
+bool sock_ready = false;
 ngscope_dci_CA_t dci_ca;
 pthread_mutex_t dci_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t socket_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -36,18 +43,6 @@ int dci_pkt_offset =0;
 // used to lock socket used to listen for packets from the sender
 //mutex socket_lock; 
 
-uint64_t timestamp_ns()
-{
-  struct timespec ts;
-
-  if ( clock_gettime( CLOCK_REALTIME, &ts ) < 0 ) {
-    perror( "clock_gettime" );
-    exit( 1 );
-  }
-
-  uint64_t ret = ts.tv_sec * 1000000000 + ts.tv_nsec;
-  return ret;
-}
 
 void sig_int_handler(int signo)
 {
@@ -59,7 +54,7 @@ void sig_int_handler(int signo)
   }
 }
 
-bool enqueue_pkt(packet_node* pkt_list, TCPHeader* header, int received, uint64_t recv_time_ns, FILE* fd_delay){
+bool enqueue_pkt(packet_node* pkt_list, TCPHeader* header, int received, uint64_t recv_time_ns){
 	packet_node* node; 
 	pkt_header_t pkt_header;
 
@@ -83,7 +78,7 @@ bool enqueue_pkt(packet_node* pkt_list, TCPHeader* header, int received, uint64_
 	node->burst_start       = false;
 	node->acked       		= false;
 	//printf("before insertnode !\n");
-	ngscope_list_insertNode_checkTime(pkt_list, node, fd_delay);
+	ngscope_list_insertNode_checkTime(pkt_list, node);
 	//printf("after insertnode !\n");
 	return true;
 }
@@ -117,6 +112,10 @@ void echo_packets(UDPSocket &sender_socket) {
 
 	FILE *fd_sync, *fd_offset, *fd_delay, *fd_ack;
 	system("mkdir ./data");	
+
+	// init the file descriptor
+	ngscope_debug_client_fd_init(&client_fd);
+
 
 	fd_sync = fopen("./data/dci_sync_delay_sum","w+");
 	fclose(fd_sync);
@@ -232,7 +231,7 @@ void echo_packets(UDPSocket &sender_socket) {
 		fprintf(fd_ack, "%ld\t%ld\t%d\n", recv_time_ns, oneway_ns, header->seq_num);
 
 		// Insert the packet into the list
-		enqueue_pkt(pkt_list, header, received, recv_time_ns, fd_delay);
+		enqueue_pkt(pkt_list, header, received, recv_time_ns);
 
 		/*************** Here we copy the data ***************/
 		//uint64_t time_anchor = 0;
@@ -372,6 +371,7 @@ void echo_packets(UDPSocket &sender_socket) {
 		sender_socket.senddata(buff, sizeof(TCPHeader), &sender_addr);
 	}
 
+	ngscope_debug_client_fd_init(&client_fd);
 
 	pthread_join(ngscope_recv_t, NULL);
 	close(ngscope_server_sock);
